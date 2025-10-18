@@ -83,23 +83,29 @@ ${filteredAttendees.map((a) => `${a.name} | ${a.email} | ${a.status === "present
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
 
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-slate-800 bg-gradient-to-r from-purple-700 via-indigo-800 to-slate-900 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
               <Image
-                src={"todopmp-pmi.webp"}
+                src={"PMI_logo.png"}
                 alt="Logo"
-                height={"128"}
-                width={"128"}
+                height={"96"}
+                width={"96"}
               />
+
+              <div className="hidden sm:flex flex-col">
+                <span className="text-xl font-bold text-white">Project </span>
+                <span className="text-xl text-white">Management</span>
+                <span className="text-xl text-white">Institute</span>
+              </div>
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               <a href="#" className="text-slate-300 hover:text-white text-sm font-medium transition">
-                Resumen
+                Eventos
               </a>
               <a href="#" className="text-slate-300 hover:text-white text-sm font-medium transition">
                 Ponentes
@@ -113,7 +119,7 @@ ${filteredAttendees.map((a) => `${a.name} | ${a.email} | ${a.status === "present
               <a href="#" className="text-slate-300 hover:text-white text-sm font-medium transition">
                 FAQ
               </a>
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full">Compra tu entrada</Button>
+              
             </nav>
 
             {/* Mobile menu button */}
