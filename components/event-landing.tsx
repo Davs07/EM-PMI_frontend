@@ -9,6 +9,7 @@ import { Search, Upload, Download, QrCode, FileText, Menu, X } from "lucide-reac
 import { AttendanceTable } from "./attendance-table"
 import { QRScanner } from "./qr-scanner"
 import { ImportDialog } from "./import-dialog"
+import Image from "next/image"
 
 export function EventLanding() {
   const [activeTab, setActiveTab] = useState("presencial")
@@ -81,37 +82,18 @@ ${filteredAttendees.map((a) => `${a.name} | ${a.email} | ${a.status === "present
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <span className="text-sm font-medium">Descuento Preventa - Cupos limitados</span>
-          <Button size="sm" className="bg-purple-500 hover:bg-purple-600 text-white rounded-full">
-            Aprovechar
-          </Button>
-        </div>
-      </div>
 
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-slate-950 font-bold text-sm">P</span>
-                </div>
-                <div className="flex gap-0.5">
-                  <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-                  <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-                </div>
-                <div className="flex gap-0.5">
-                  <div className="w-4 h-4 bg-cyan-500"></div>
-                  <div className="w-4 h-4 bg-purple-600 transform -skew-x-12"></div>
-                </div>
-              </div>
-              <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-bold text-white">Project Management</span>
-                <span className="text-sm font-bold text-white">Institute</span>
-              </div>
+              <Image
+                src={"todopmp-pmi.webp"}
+                alt="Logo"
+                height={"128"}
+                width={"128"}
+              />
             </div>
 
             {/* Desktop Navigation */}
