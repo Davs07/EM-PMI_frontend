@@ -1,33 +1,24 @@
 "use client"
 
+import Image from "next/image"
+
 export function PMIHeader() {
   return (
-    <header className="border-b bg-white shadow-sm">
+    <header className="border-b bg-white shadow-sm bg-gradient-to-r from-purple-700 via-indigo-800 to-slate-900">
       <div className="container mx-auto px-4 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            {/* P Letter */}
-            <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">P</span>
-            </div>
-            {/* Orange circles */}
-            <div className="flex gap-0.5">
-              <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-              <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-            </div>
-            {/* Cyan and Purple */}
-            <div className="flex gap-0.5">
-              <div className="w-4 h-4 bg-cyan-500"></div>
-              <div className="w-4 h-4 bg-purple-600 transform -skew-x-12"></div>
-            </div>
+          <Image
+            src={"PMI_logo.png"}
+            alt="Logo"
+            height={"96"}
+            width={"96"}
+          />
+        
+          <div className="hidden sm:flex flex-col">
+              <span className="text-xl font-bold text-white">Project </span>
+              <span className="text-xl text-white">Management</span>
+              <span className="text-xl text-white">Institute</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-black">Project Management</span>
-            <span className="text-lg font-bold text-black">Institute</span>
-          </div>
-        </div>
-        <div className="text-right text-sm text-muted-foreground">
-          <p>Sistema de Control de Asistencia</p>
         </div>
       </div>
     </header>
