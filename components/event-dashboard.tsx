@@ -11,6 +11,7 @@ import { QRScanner } from "./qr-scanner"
 import { ImportDialog } from "./import-dialog"
 import { AttendeeDetailsModal } from "./attendee-details-modal"
 import { AdvancedSearch } from "./advanced-search"
+import { ReminderModal } from "./reminder-modal"
 
 interface Attendee {
   id: number
@@ -46,6 +47,7 @@ export function EventDashboard() {
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showReminderModal, setShowReminderModal] = useState(false)
 
   const [attendees, setAttendees] = useState<Attendee[]>([
     {
@@ -295,6 +297,19 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
     link.click()
   }
 
+  const handleSendReminder = (data: { subject: string; message: string; pdfs: File[] }) => {
+    console.log("Recordatorio a enviar:", {
+      subject: data.subject,
+      message: data.message,
+      pdfCount: data.pdfs.length,
+      recipients: filteredAttendees.length,
+    })
+
+    // Here you would typically send this to your backend API
+    // For now, we'll just show a success message
+    alert(`Recordatorio enviado a ${filteredAttendees.length} asistentes`)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <PMIHeader />
@@ -321,6 +336,12 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
           }}
         />
       )}
+
+      <ReminderModal
+        isOpen={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        onSend={handleSendReminder}
+      />
 
       <AttendeeDetailsModal
         attendee={selectedAttendee}
@@ -421,7 +442,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                     <FileText className="h-4 w-4" />
                     Exportar Reporte
                   </Button>
-                  <Button variant="outline" className="gap-2 bg-transparent">
+                  <Button onClick={() => setShowReminderModal(true)} variant="outline" className="gap-2 bg-transparent">
                     Crear Recordatorio
                   </Button>
                 </div>
