@@ -1,20 +1,26 @@
 "use client"
-import { CheckCircle2, Circle } from "lucide-react"
+
+import { CheckCircle2, Circle, Eye } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface Attendee {
   id: number
-  name: string
+  dni: string
+  fullName: string
   email: string
+  registrationDate: string
   status: "present" | "absent"
   type: string
+  [key: string]: any
 }
 
 interface AttendanceTableProps {
   attendees: Attendee[]
   onToggleAttendance: (id: number) => void
+  onViewDetails: (attendee: Attendee) => void
 }
 
-export function AttendanceTable({ attendees, onToggleAttendance }: AttendanceTableProps) {
+export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails }: AttendanceTableProps) {
   const presentCount = attendees.filter((a) => a.status === "present").length
   const absentCount = attendees.filter((a) => a.status === "absent").length
   const attendanceRate = attendees.length > 0 ? Math.round((presentCount / attendees.length) * 100) : 0
@@ -42,15 +48,18 @@ export function AttendanceTable({ attendees, onToggleAttendance }: AttendanceTab
         <table className="w-full">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="px-6 py-3 text-left text-sm font-semibold">Apellidos y nombres</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold">Correo de google</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">DNI</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Apellidos y Nombres</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Correo Electrónico</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Marca Temporal</th>
               <th className="px-6 py-3 text-center text-sm font-semibold">Asistencia</th>
+              <th className="px-6 py-3 text-center text-sm font-semibold">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {attendees.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                   No hay asistentes que coincidan con los filtros
                 </td>
               </tr>
@@ -62,8 +71,10 @@ export function AttendanceTable({ attendees, onToggleAttendance }: AttendanceTab
                     attendee.status === "present" ? "bg-green-50 hover:bg-green-100" : "hover:bg-muted/30"
                   }`}
                 >
-                  <td className="px-6 py-4 text-sm font-medium">{attendee.name}</td>
+                  <td className="px-6 py-4 text-sm font-medium">{attendee.dni}</td>
+                  <td className="px-6 py-4 text-sm font-medium">{attendee.fullName}</td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">{attendee.email}</td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground">{attendee.registrationDate}</td>
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => onToggleAttendance(attendee.id)}
@@ -76,6 +87,17 @@ export function AttendanceTable({ attendees, onToggleAttendance }: AttendanceTab
                         <Circle className="h-6 w-6 text-gray-300" />
                       )}
                     </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Button
+                      onClick={() => onViewDetails(attendee)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-orange-500 border-orange-500 hover:bg-orange-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Detalles
+                    </Button>
                   </td>
                 </tr>
               ))
