@@ -1,10 +1,10 @@
 "use client"
-import { EventDashboard } from "@/components/event-dashboard"
+import { EventsManager } from "@/components/events-manager"
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-background">
-      <EventDashboard />
+      <EventsManager />
     </main>
   )
 }

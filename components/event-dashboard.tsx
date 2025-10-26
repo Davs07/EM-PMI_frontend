@@ -38,7 +38,11 @@ interface Attendee {
   type: string
 }
 
-export function EventDashboard() {
+interface EventDashboardProps {
+  eventId?: string
+}
+
+export function EventDashboard({ eventId }: EventDashboardProps) {
   const [activeTab, setActiveTab] = useState("presencial")
   const [searchTerm, setSearchTerm] = useState("")
   const [searchField, setSearchField] = useState("nombre")
