@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, QrCode, FileText } from "lucide-react"
+import { Upload, Download, QrCode, FileText, RefreshCw } from "lucide-react"
 import { AttendanceTable } from "./attendance-table"
 import { PMIHeader } from "./pmi-header"
 import { QRScanner } from "./qr-scanner"
@@ -12,6 +12,9 @@ import { ImportDialog } from "./import-dialog"
 import { AttendeeDetailsModal } from "./attendee-details-modal"
 import { AdvancedSearch } from "./advanced-search"
 import { ReminderModal } from "./reminder-modal"
+import { Participante } from "./ui/data/model"
+import { participantService } from "@/services/participant-service"
+import { attendanceService } from "@/services/attendance-service"
 
 interface Attendee {
   id: number
@@ -36,6 +39,7 @@ interface Attendee {
   authorizeDataUsage: boolean
   status: "present" | "absent"
   type: string
+  participante: Participante
 }
 
 interface EventDashboardProps {
@@ -43,7 +47,7 @@ interface EventDashboardProps {
 }
 
 export function EventDashboard({ eventId }: EventDashboardProps) {
-  const [activeTab, setActiveTab] = useState("presencial")
+  const [activeTab, setActiveTab] = useState("asistentes")
   const [searchTerm, setSearchTerm] = useState("")
   const [searchField, setSearchField] = useState("nombre")
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all")
@@ -52,177 +56,112 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [attendees, setAttendees] = useState<Attendee[]>([
-    {
-      id: 1,
-      dni: "12345678",
-      fullName: "Fernando Becerra García",
-      email: "Fernando@gmail.com",
-      phone: "+51987654321",
-      registrationDate: "2025-10-20 14:30",
-      city: "Lima",
-      role: "Miembro de un capítulo del PMI",
-      modality: "Presencial",
-      studyProgram: null,
-      educationalInstitution: null,
-      studentCardLink: null,
-      pmiChapter: "PMI Lima",
-      pmiMemberId: "PMI-001",
-      pmiCertification: true,
-      paymentVoucher: "Boleta",
-      ruc: null,
-      paymentVoucherLink: "https://example.com/voucher1.pdf",
-      receiveEventInfo: true,
-      authorizeDataUsage: true,
-      status: "present" as const,
-      type: "presencial",
-    },
-    {
-      id: 2,
-      dni: "87654321",
-      fullName: "Marcio Alvarez López",
-      email: "Marcio@gmail.com",
-      phone: "+51912345678",
-      registrationDate: "2025-10-19 10:15",
-      city: "Arequipa",
-      role: "Estudiante",
-      modality: "Híbrida",
-      studyProgram: "Ingeniería Civil",
-      educationalInstitution: "Universidad Nacional de Ingeniería",
-      studentCardLink: "https://example.com/carnet2.pdf",
-      pmiChapter: null,
-      pmiMemberId: null,
-      pmiCertification: false,
-      paymentVoucher: "Factura",
-      ruc: "20123456789",
-      paymentVoucherLink: "https://example.com/voucher2.pdf",
-      receiveEventInfo: true,
-      authorizeDataUsage: true,
-      status: "absent" as const,
-      type: "presencial",
-    },
-    {
-      id: 3,
-      dni: "11223344",
-      fullName: "Fabricio Marín Rodríguez",
-      email: "Fabricio@gmail.com",
-      phone: "+51998765432",
-      registrationDate: "2025-10-18 16:45",
-      city: "Trujillo",
-      role: "Público en general",
-      modality: "Virtual",
-      studyProgram: null,
-      educationalInstitution: null,
-      studentCardLink: null,
-      pmiChapter: null,
-      pmiMemberId: null,
-      pmiCertification: false,
-      paymentVoucher: "Boleta",
-      ruc: null,
-      paymentVoucherLink: "https://example.com/voucher3.pdf",
-      receiveEventInfo: false,
-      authorizeDataUsage: true,
-      status: "absent" as const,
-      type: "presencial",
-    },
-    {
-      id: 4,
-      dni: "55667788",
-      fullName: "Davy Rodriguez Pérez",
-      email: "Davy@gmail.com",
-      phone: "+51945678901",
-      registrationDate: "2025-10-17 09:20",
-      city: "Cusco",
-      role: "Estudiante",
-      modality: "Presencial",
-      studyProgram: "Ingeniería Ambiental",
-      educationalInstitution: "Pontificia Universidad Católica",
-      studentCardLink: "https://example.com/carnet4.pdf",
-      pmiChapter: null,
-      pmiMemberId: null,
-      pmiCertification: false,
-      paymentVoucher: "Boleta",
-      ruc: null,
-      paymentVoucherLink: "https://example.com/voucher4.pdf",
-      receiveEventInfo: true,
-      authorizeDataUsage: true,
-      status: "absent" as const,
-      type: "presencial",
-    },
-    {
-      id: 5,
-      dni: "99887766",
-      fullName: "Juan García Sánchez",
-      email: "Juan@gmail.com",
-      phone: "+51956789012",
-      registrationDate: "2025-10-16 13:00",
-      city: "Lima",
-      role: "Miembro de un capítulo del PMI",
-      modality: "Virtual",
-      studyProgram: null,
-      educationalInstitution: null,
-      studentCardLink: null,
-      pmiChapter: "PMI Lima",
-      pmiMemberId: "PMI-002",
-      pmiCertification: true,
-      paymentVoucher: "Factura",
-      ruc: "20987654321",
-      paymentVoucherLink: "https://example.com/voucher5.pdf",
-      receiveEventInfo: true,
-      authorizeDataUsage: true,
-      status: "present" as const,
-      type: "virtual",
-    },
-    {
-      id: 6,
-      dni: "44332211",
-      fullName: "María López Martínez",
-      email: "Maria@gmail.com",
-      phone: "+51967890123",
-      registrationDate: "2025-10-15 11:30",
-      city: "Piura",
-      role: "Estudiante",
-      modality: "Virtual",
-      studyProgram: "Administración de Proyectos",
-      educationalInstitution: "Universidad de Piura",
-      studentCardLink: "https://example.com/carnet6.pdf",
-      pmiChapter: null,
-      pmiMemberId: null,
-      pmiCertification: false,
-      paymentVoucher: "Boleta",
-      ruc: null,
-      paymentVoucherLink: "https://example.com/voucher6.pdf",
-      receiveEventInfo: true,
-      authorizeDataUsage: true,
-      status: "present" as const,
-      type: "virtual",
-    },
-    {
-      id: 7,
-      dni: "77665544",
-      fullName: "Carlos Ruiz Flores",
-      email: "Carlos@gmail.com",
-      phone: "+51978901234",
-      registrationDate: "2025-10-14 15:45",
-      city: "Ica",
-      role: "Miembro de un capítulo del PMI",
-      modality: "Presencial",
-      studyProgram: null,
-      educationalInstitution: null,
-      studentCardLink: null,
-      pmiChapter: "PMI Sur",
-      pmiMemberId: "PMI-003",
-      pmiCertification: true,
-      paymentVoucher: "Factura",
-      ruc: "20456789123",
-      paymentVoucherLink: "https://example.com/voucher7.pdf",
-      receiveEventInfo: true,
-      authorizeDataUsage: true,
-      status: "absent" as const,
-      type: "ponentes",
-    },
-  ])
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [autoRefresh, setAutoRefresh] = useState(false)
+
+  // Cargar participantes desde la API
+  useEffect(() => {
+    if (eventId) {
+      loadParticipantes()
+    }
+  }, [eventId])
+
+  // Auto-refresco opcional cada 30 segundos
+  useEffect(() => {
+    if (!autoRefresh || !eventId) return
+
+    const interval = setInterval(() => {
+      loadParticipantes()
+    }, 30000) // 30 segundos
+
+    return () => clearInterval(interval)
+  }, [autoRefresh, eventId])
+
+  const loadParticipantes = async () => {
+    if (!eventId) {
+      setError("No se ha especificado un ID de evento")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError(null)
+      // Cargar participantes específicos del evento usando el nuevo endpoint
+      const participantes = await participantService.getByEventId(eventId)
+      
+      // Transformar Participante a Attendee y cargar estado de asistencia
+      const transformedAttendeesPromises = participantes.map(async (p: Participante) => {
+        let attendanceStatus: "present" | "absent" = "absent"
+        
+        // Intentar obtener el estado de asistencia desde el backend
+        try {
+          const asistencia = await attendanceService.getByParticipantAndEvent(p.id, Number(eventId))
+          attendanceStatus = asistencia.asistio ? "present" : "absent"
+        } catch (error) {
+          // Si no existe el registro de asistencia, se mantiene como ausente por defecto
+          console.warn(`No se encontró registro de asistencia para participante ${p.id} en evento ${eventId}`)
+        }
+
+        return {
+          id: p.id,
+          dni: p.dni,
+          fullName: `${p.apellidoPaterno} ${p.apellidoMaterno} ${p.nombres}`.trim(),
+          email: p.email,
+          phone: p.numeroWhatsapp,
+          registrationDate: new Date().toLocaleDateString("es-ES", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+          }),
+          city: p.ciudad,
+          role: p.rol,
+          modality: determineModality(p),
+          studyProgram: p.gradoEstudio || null,
+          educationalInstitution: null,
+          studentCardLink: p.evidenciaEstudio || null,
+          pmiChapter: p.capituloPmi || null,
+          pmiMemberId: p.idMiembroPmi || null,
+          pmiCertification: p.cuentaConCertificadoPmi,
+          paymentVoucher: "Boleta",
+          ruc: null,
+          paymentVoucherLink: "",
+          receiveEventInfo: true,
+          authorizeDataUsage: true,
+          status: attendanceStatus, // Estado real desde el backend
+          type: determineType(p),
+          participante: p,
+        } as Attendee
+      })
+      
+      const transformedAttendees = await Promise.all(transformedAttendeesPromises)
+      setAttendees(transformedAttendees)
+    } catch (err) {
+      console.error("Error al cargar participantes:", err)
+      setError("No se pudieron cargar los participantes. Verifica que el servidor esté en ejecución.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Función para determinar el tipo de participante basado en su rol
+  const determineType = (participante: Participante): string => {
+    const rol = participante.rol?.toLowerCase() || ""
+    if (rol.includes("ponente") || rol.includes("speaker") || rol.includes("expositor")) return "ponentes"
+    return "asistentes" // Por defecto asistentes (incluye presencial, virtual e híbrido)
+  }
+
+  // Función para determinar la modalidad
+  const determineModality = (participante: Participante): string => {
+    const rol = participante.rol?.toLowerCase() || ""
+    if (rol.includes("virtual")) return "Virtual"
+    if (rol.includes("híbrido") || rol.includes("hibrido")) return "Híbrida"
+    return "Presencial"
+  }
 
   const filteredAttendees = attendees.filter((attendee) => {
     const matchesTab = attendee.type === activeTab
@@ -243,10 +182,37 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
     return matchesTab && matchesSearch && matchesFilter
   })
 
-  const toggleAttendance = (id: number) => {
-    setAttendees(
-      attendees.map((a) => (a.id === id ? { ...a, status: a.status === "present" ? "absent" : "present" } : a)),
-    )
+  const toggleAttendance = async (id: number) => {
+    if (!eventId) {
+      console.error("No se puede actualizar asistencia sin ID de evento")
+      return
+    }
+
+    // Encontrar el asistente actual
+    const attendee = attendees.find((a) => a.id === id)
+    if (!attendee) {
+      console.error(`No se encontró el asistente con ID ${id}`)
+      return
+    }
+
+    // Determinar el nuevo estado
+    const newStatus = attendee.status === "present" ? "absent" : "present"
+    const asistio = newStatus === "present"
+
+    try {
+      // Actualizar en el backend
+      await attendanceService.updateAttendanceStatus(id, Number(eventId), asistio)
+
+      // Si la actualización fue exitosa, actualizar el estado local
+      setAttendees(
+        attendees.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
+      )
+
+      console.log(`✅ Asistencia actualizada: Participante ${id} - ${asistio ? "Presente" : "Ausente"}`)
+    } catch (error) {
+      console.error("❌ Error al actualizar asistencia:", error)
+      alert("No se pudo actualizar la asistencia. Por favor, intenta de nuevo.")
+    }
   }
 
   const handleSearch = (term: string, field: string) => {
@@ -321,12 +287,21 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
       {showQRScanner && (
         <QRScanner
           onClose={() => setShowQRScanner(false)}
-          onScan={(email) => {
-            const attendee = attendees.find((a) => a.email === email)
-            if (attendee) {
-              toggleAttendance(attendee.id)
+          attendees={attendees.map(a => ({ 
+            id: a.id, 
+            fullName: a.fullName,
+            dni: a.dni 
+          }))}
+          onScan={(participanteId: number, success: boolean) => {
+            if (success) {
+              // Actualizar el estado del participante en la lista local
+              setAttendees(
+                attendees.map((a) => 
+                  a.id === participanteId ? { ...a, status: "present" } : a
+                )
+              )
+              console.log(`✅ Asistencia marcada por QR para participante ${participanteId}`)
             }
-            setShowQRScanner(false)
           }}
         />
       )}
@@ -358,19 +333,16 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="virtual" className="text-base">
-              Virtual
-            </TabsTrigger>
-            <TabsTrigger value="presencial" className="text-base">
-              Presencial
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="asistentes" className="text-base">
+              Asistentes
             </TabsTrigger>
             <TabsTrigger value="ponentes" className="text-base">
               Ponentes
             </TabsTrigger>
           </TabsList>
 
-          {["virtual", "presencial", "ponentes"].map((tab) => (
+          {["asistentes", "ponentes"].map((tab) => (
             <TabsContent key={tab} value={tab} className="space-y-6">
               <Card className="p-6">
                 <div className="mb-6">
@@ -378,31 +350,60 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                 </div>
 
                 <div className="flex flex-col gap-4 mb-6">
-                  <div className="flex gap-2 flex-wrap">
-                    <Button
-                      variant={attendanceFilter === "all" ? "default" : "outline"}
-                      onClick={() => setAttendanceFilter("all")}
-                      className="rounded-full"
-                      size="sm"
-                    >
-                      Todos
-                    </Button>
-                    <Button
-                      variant={attendanceFilter === "present" ? "default" : "outline"}
-                      onClick={() => setAttendanceFilter("present")}
-                      className="rounded-full"
-                      size="sm"
-                    >
-                      Asistió
-                    </Button>
-                    <Button
-                      variant={attendanceFilter === "absent" ? "default" : "outline"}
-                      onClick={() => setAttendanceFilter("absent")}
-                      className="rounded-full"
-                      size="sm"
-                    >
-                      No Asís
-                    </Button>
+                  <div className="flex gap-2 flex-wrap items-center justify-between">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant={attendanceFilter === "all" ? "default" : "outline"}
+                        onClick={() => setAttendanceFilter("all")}
+                        className="rounded-full"
+                        size="sm"
+                      >
+                        Todos
+                      </Button>
+                      <Button
+                        variant={attendanceFilter === "present" ? "default" : "outline"}
+                        onClick={() => setAttendanceFilter("present")}
+                        className="rounded-full"
+                        size="sm"
+                      >
+                        Asistió
+                      </Button>
+                      <Button
+                        variant={attendanceFilter === "absent" ? "default" : "outline"}
+                        onClick={() => setAttendanceFilter("absent")}
+                        className="rounded-full"
+                        size="sm"
+                      >
+                        No Asís
+                      </Button>
+                    </div>
+                    
+                    <div className="flex gap-2 items-center">
+                      <Button
+                        onClick={loadParticipantes}
+                        disabled={isLoading}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        title="Recargar datos desde el servidor"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Recargar
+                      </Button>
+                      
+                      <div className="flex items-center gap-2 px-3 py-1 border rounded-md">
+                        <input
+                          type="checkbox"
+                          id="autoRefresh"
+                          checked={autoRefresh}
+                          onChange={(e) => setAutoRefresh(e.target.checked)}
+                          className="cursor-pointer"
+                        />
+                        <label htmlFor="autoRefresh" className="text-sm cursor-pointer whitespace-nowrap">
+                          Auto-actualizar
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                   {searchTerm && (
@@ -418,7 +419,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                   )}
                 </div>
 
-                {activeTab === "presencial" && (
+                {activeTab === "asistentes" && (
                   <div className="mb-6 flex gap-2">
                     <Button onClick={() => setShowQRScanner(true)} className="gap-2 bg-orange-500 hover:bg-orange-600">
                       <QrCode className="h-4 w-4" />
@@ -427,11 +428,24 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                   </div>
                 )}
 
-                <AttendanceTable
-                  attendees={filteredAttendees}
-                  onToggleAttendance={toggleAttendance}
-                  onViewDetails={handleViewDetails}
-                />
+                {isLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Cargando participantes desde el backend...
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-500 mb-4">{error}</p>
+                    <Button onClick={loadParticipantes} variant="outline">
+                      Reintentar
+                    </Button>
+                  </div>
+                ) : (
+                  <AttendanceTable
+                    attendees={filteredAttendees as any}
+                    onToggleAttendance={toggleAttendance}
+                    onViewDetails={handleViewDetails as any}
+                  />
+                )}
 
                 <div className="flex gap-2 mt-6 flex-wrap">
                   <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 bg-transparent">

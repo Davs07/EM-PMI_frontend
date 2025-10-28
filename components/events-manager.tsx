@@ -1,58 +1,39 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { EventsGallery } from "./events-gallery"
 import { EventFormModal } from "./event-form-modal"
 import { EventDetailView } from "./event-detail-view"
 import type { Event } from "@/types/event"
+import { eventService } from "@/services/event-service"
 
 export function EventsManager() {
   const [view, setView] = useState<"gallery" | "detail">("gallery")
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFormModal, setShowFormModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: "1",
-      nombre: "VI Congreso Internacional de Dirección de Proyectos",
-      descripcion: "Congreso internacional enfocado en las mejores prácticas de dirección de proyectos",
-      fechaInicio: "2025-11-07T09:00",
-      fechaFin: "2025-11-08T18:00",
-      tipo: "HIBRIDO",
-      ubicacion: "Trujillo, Perú",
-      capacidadMaxima: 500,
-      brindaCertificado: true,
-      plantillaImagen: "/congreso-internacional-proyectos.jpg",
-      estadoEvento: "PROGRAMADO",
-    },
-    {
-      id: "2",
-      nombre: "Webinar: Gestión Ágil de Proyectos",
-      descripcion: "Sesión virtual sobre metodologías ágiles en la gestión de proyectos",
-      fechaInicio: "2025-11-15T14:00",
-      fechaFin: "2025-11-15T16:00",
-      tipo: "VIRTUAL",
-      ubicacion: "",
-      capacidadMaxima: 1000,
-      brindaCertificado: true,
-      plantillaImagen: "/webinar-agil.jpg",
-      estadoEvento: "PROGRAMADO",
-    },
-    {
-      id: "3",
-      nombre: "Taller Presencial: Liderazgo en Proyectos",
-      descripcion: "Taller práctico sobre liderazgo y gestión de equipos en proyectos",
-      fechaInicio: "2025-11-20T09:00",
-      fechaFin: "2025-11-20T17:00",
-      tipo: "PRESENCIAL",
-      ubicacion: "Lima, Perú",
-      capacidadMaxima: 100,
-      brindaCertificado: true,
-      plantillaImagen: "/taller-liderazgo.jpg",
-      estadoEvento: "PROGRAMADO",
-    },
-  ])
+  // Cargar eventos al montar el componente
+  useEffect(() => {
+    loadEvents()
+  }, [])
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await eventService.getAll()
+      setEvents(data)
+    } catch (err) {
+      setError("Error al cargar los eventos. Por favor, intenta de nuevo.")
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCreateEvent = () => {
     setEditingEvent(null)
@@ -64,19 +45,35 @@ export function EventsManager() {
     setShowFormModal(true)
   }
 
-  const handleSaveEvent = (event: Event) => {
-    if (editingEvent) {
-      setEvents(events.map((e) => (e.id === event.id ? event : e)))
-    } else {
-      setEvents([...events, event])
+  const handleSaveEvent = async (event: Event) => {
+    try {
+      if (editingEvent) {
+        // Actualizar evento existente
+        await eventService.update(event.id, event)
+      } else {
+        // Crear nuevo evento
+        await eventService.create(event)
+      }
+      // Recargar la lista de eventos desde el backend
+      await loadEvents()
+      setShowFormModal(false)
+      setEditingEvent(null)
+    } catch (err) {
+      console.error("Error al guardar evento:", err)
+      alert("Error al guardar el evento. Por favor, intenta de nuevo.")
     }
-    setShowFormModal(false)
-    setEditingEvent(null)
   }
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este evento?")) {
-      setEvents(events.filter((e) => e.id !== eventId))
+      try {
+        await eventService.delete(eventId)
+        // Recargar la lista de eventos desde el backend
+        await loadEvents()
+      } catch (err) {
+        console.error("Error al eliminar evento:", err)
+        alert("Error al eliminar el evento. Por favor, intenta de nuevo.")
+      }
     }
   }
 
@@ -88,6 +85,30 @@ export function EventsManager() {
   const handleBackToGallery = () => {
     setView("gallery")
     setSelectedEvent(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-lg">Cargando eventos...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-red-600 mb-4">{error}</p>
+          <button
+            onClick={loadEvents}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

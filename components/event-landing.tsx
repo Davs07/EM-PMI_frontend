@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
@@ -10,6 +10,20 @@ import { AttendanceTable } from "./attendance-table"
 import { QRScanner } from "./qr-scanner"
 import { ImportDialog } from "./import-dialog"
 import Image from "next/image"
+import { Participante } from "./ui/data/model"
+import { fetchParticipantes } from "./ui/data/api"
+
+// Interface para la tabla de asistencia
+interface Attendee {
+  id: number
+  dni: string
+  fullName: string
+  email: string
+  registrationDate: string
+  status: "present" | "absent"
+  type: string
+  participante: Participante // Referencia al participante original
+}
 
 export function EventLanding() {
   const [activeTab, setActiveTab] = useState("presencial")
@@ -18,22 +32,57 @@ export function EventLanding() {
   const [showQRScanner, setShowQRScanner] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [attendees, setAttendees] = useState([
-    { id: 1, name: "Fernando Becerra", email: "Fernando@gmail.com", status: "present" as const, type: "presencial" },
-    { id: 2, name: "Marcio Alvarez", email: "Marcio@gmail.com", status: "absent" as const, type: "presencial" },
-    { id: 3, name: "Fabricio Marín", email: "Fabricio@gmail.com", status: "absent" as const, type: "presencial" },
-    { id: 4, name: "Davy Rodriguez", email: "Davy@gmail.com", status: "absent" as const, type: "presencial" },
-    { id: 5, name: "Juan García", email: "Juan@gmail.com", status: "present" as const, type: "virtual" },
-    { id: 6, name: "María López", email: "Maria@gmail.com", status: "present" as const, type: "virtual" },
-    { id: 7, name: "Carlos Ruiz", email: "Carlos@gmail.com", status: "absent" as const, type: "ponentes" },
-  ])
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+
+  // Cargar participantes desde la API
+  useEffect(() => {
+    loadParticipantes()
+  }, [])
+
+  const loadParticipantes = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const participantes = await fetchParticipantes()
+      
+      // Transformar Participante a Attendee
+      const transformedAttendees: Attendee[] = participantes.map((p) => ({
+        id: p.id,
+        dni: p.dni,
+        fullName: `${p.apellidoPaterno} ${p.apellidoMaterno} ${p.nombres}`.trim(),
+        email: p.email,
+        registrationDate: new Date().toLocaleDateString("es-ES"), // Ajustar si tienes fecha de registro
+        status: "absent", // Por defecto ausente
+        type: determineType(p), // Función para determinar el tipo
+        participante: p,
+      }))
+      
+      setAttendees(transformedAttendees)
+    } catch (err) {
+      console.error("Error al cargar participantes:", err)
+      setError("No se pudieron cargar los participantes. Verifica que el servidor esté en ejecución.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Función para determinar el tipo de participante basado en su rol
+  const determineType = (participante: Participante): string => {
+    const rol = participante.rol?.toLowerCase() || ""
+    if (rol.includes("ponente") || rol.includes("speaker")) return "ponentes"
+    if (rol.includes("virtual") || rol.includes("online")) return "virtual"
+    return "presencial" // Por defecto presencial
+  }
 
   const filteredAttendees = attendees.filter((attendee) => {
     const matchesTab = attendee.type === activeTab
     const matchesSearch =
-      attendee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      attendee.email.toLowerCase().includes(searchTerm.toLowerCase())
+      attendee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      attendee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      attendee.dni.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter =
       attendanceFilter === "all" || attendee.status === (attendanceFilter === "present" ? "present" : "absent")
     return matchesTab && matchesSearch && matchesFilter
@@ -45,10 +94,16 @@ export function EventLanding() {
     )
   }
 
+  const handleViewDetails = (attendee: Attendee) => {
+    // TODO: Implementar modal de detalles
+    console.log("Ver detalles de:", attendee.participante)
+    alert(`Detalles de ${attendee.fullName}\n\nDNI: ${attendee.dni}\nEmail: ${attendee.email}\nCiudad: ${attendee.participante.ciudad}\nRol: ${attendee.participante.rol}`)
+  }
+
   const handleExportCSV = () => {
     const csv = ["Apellidos y nombres,Correo de google,Estado"]
     filteredAttendees.forEach((a) => {
-      csv.push(`"${a.name}","${a.email}","${a.status === "present" ? "Presente" : "Ausente"}"`)
+      csv.push(`"${a.fullName}","${a.email}","${a.status === "present" ? "Presente" : "Ausente"}"`)
     })
     const blob = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" })
     const url = window.URL.createObjectURL(blob)
@@ -69,7 +124,7 @@ RESUMEN:
 - Ausentes: ${filteredAttendees.filter((a) => a.status === "absent").length}
 
 DETALLE:
-${filteredAttendees.map((a) => `${a.name} | ${a.email} | ${a.status === "present" ? "Presente" : "Ausente"}`).join("\n")}
+${filteredAttendees.map((a) => `${a.fullName} | ${a.email} | ${a.status === "present" ? "Presente" : "Ausente"}`).join("\n")}
     `
 
     const blob = new Blob([content], { type: "text/plain;charset=utf-8;" })
@@ -89,7 +144,7 @@ ${filteredAttendees.map((a) => `${a.name} | ${a.email} | ${a.status === "present
             {/* Logo */}
             <div className="flex items-center gap-3">
               <Image
-                src={"PMI_logo.png"}
+                src={"/public/PMI_logo.png"}
                 alt="Logo"
                 height={"96"}
                 width={"96"}
@@ -262,7 +317,17 @@ ${filteredAttendees.map((a) => `${a.name} | ${a.email} | ${a.status === "present
                     </div>
                   )}
 
-                  <AttendanceTable attendees={filteredAttendees} onToggleAttendance={toggleAttendance} />
+                  {isLoading ? (
+                    <div className="text-center py-8 text-slate-400">Cargando participantes...</div>
+                  ) : error ? (
+                    <div className="text-center py-8 text-red-400">{error}</div>
+                  ) : (
+                    <AttendanceTable 
+                      attendees={filteredAttendees} 
+                      onToggleAttendance={toggleAttendance}
+                      onViewDetails={handleViewDetails}
+                    />
+                  )}
 
                   <div className="flex gap-2 mt-6 flex-wrap">
                     <Button

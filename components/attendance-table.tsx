@@ -2,6 +2,7 @@
 
 import { CheckCircle2, Circle, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Participante } from "./ui/data/model"
 
 interface Attendee {
   id: number
@@ -11,6 +12,7 @@ interface Attendee {
   registrationDate: string
   status: "present" | "absent"
   type: string
+  participante: Participante
   [key: string]: any
 }
 
