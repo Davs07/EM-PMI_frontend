@@ -12,6 +12,7 @@ import { ImportDialog } from "./import-dialog"
 import { AttendeeDetailsModal } from "./attendee-details-modal"
 import { AdvancedSearch } from "./advanced-search"
 import { ReminderModal } from "./reminder-modal"
+import { AddAttendeeModal } from "./add-attendee-modal"
 import { Participante } from "./ui/data/model"
 import { participantService } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
@@ -56,6 +57,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
+  const [showAddAttendeeModal, setShowAddAttendeeModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -95,11 +97,29 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
       // Transformar Participante a Attendee y cargar estado de asistencia
       const transformedAttendeesPromises = participantes.map(async (p: Participante) => {
         let attendanceStatus: "present" | "absent" = "absent"
+        let registrationDate = new Date().toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
         
         // Intentar obtener el estado de asistencia desde el backend
         try {
           const asistencia = await attendanceService.getByParticipantAndEvent(p.id, Number(eventId))
           attendanceStatus = asistencia.asistio ? "present" : "absent"
+          
+          // Usar la fecha de registro real de la asistencia
+          if (asistencia.fechaRegistro) {
+            registrationDate = new Date(asistencia.fechaRegistro).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          }
         } catch (error) {
           // Si no existe el registro de asistencia, se mantiene como ausente por defecto
           console.warn(`No se encontró registro de asistencia para participante ${p.id} en evento ${eventId}`)
@@ -111,13 +131,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
           fullName: `${p.apellidoPaterno} ${p.apellidoMaterno} ${p.nombres}`.trim(),
           email: p.email,
           phone: p.numeroWhatsapp,
-          registrationDate: new Date().toLocaleDateString("es-ES", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit"
-          }),
+          registrationDate: registrationDate, // Fecha real desde la asistencia
           city: p.ciudad,
           role: p.rol,
           modality: determineModality(p),
@@ -322,6 +336,17 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
         onSend={handleSendReminder}
       />
 
+      <AddAttendeeModal
+        isOpen={showAddAttendeeModal}
+        onClose={() => setShowAddAttendeeModal(false)}
+        eventId={eventId || ""}
+        onSuccess={() => {
+          loadParticipantes()
+          setShowAddAttendeeModal(false)
+        }}
+        existingParticipantIds={attendees.map(a => a.id)}
+      />
+
       <AttendeeDetailsModal
         attendee={selectedAttendee}
         isOpen={showDetailsModal}
@@ -420,10 +445,14 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                 </div>
 
                 {activeTab === "asistentes" && (
-                  <div className="mb-6 flex gap-2">
+                  <div className="mb-6 flex gap-2 flex-wrap">
                     <Button onClick={() => setShowQRScanner(true)} className="gap-2 bg-orange-500 hover:bg-orange-600">
                       <QrCode className="h-4 w-4" />
                       Escanear QR
+                    </Button>
+                    <Button onClick={() => setShowAddAttendeeModal(true)} variant="outline" className="gap-2">
+                      <Upload className="h-4 w-4" />
+                      Agregar Participante
                     </Button>
                   </div>
                 )}

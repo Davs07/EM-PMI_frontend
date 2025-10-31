@@ -116,4 +116,35 @@ export const attendanceService = {
       throw error
     }
   },
+
+  /**
+   * Crea un nuevo registro de asistencia para un participante en un evento
+   */
+  async create(participanteId: number, eventoId: number): Promise<AsistenciaDTO> {
+    try {
+      const payload = {
+        participanteId,
+        eventoId,
+        asistio: false, // Por defecto se crea como ausente
+      }
+
+      const response = await fetch(`${API_BASE_URL}/asistencias/crear`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Error al crear asistencia: ${response.status} - ${errorText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("Error creating attendance:", error)
+      throw error
+    }
+  },
 }

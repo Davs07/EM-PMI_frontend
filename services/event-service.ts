@@ -23,6 +23,19 @@ export interface EventoDTO {
  * Mapea un EventoDTO del backend a un Event del frontend
  */
 function mapEventoDTOToEvent(dto: EventoDTO): Event {
+  // Procesar la imagen correctamente
+  let imagenUrl = "/placeholder.jpg"
+  
+  if (dto.plantillaImagen && dto.plantillaImagen.trim() !== "") {
+    // Si ya viene con el prefijo data:image
+    if (dto.plantillaImagen.startsWith("data:")) {
+      imagenUrl = dto.plantillaImagen
+    } else {
+      // Si es Base64 puro, agregar el prefijo
+      imagenUrl = `data:image/jpeg;base64,${dto.plantillaImagen}`
+    }
+  }
+
   return {
     id: dto.id.toString(),
     nombre: dto.nombre,
@@ -33,9 +46,7 @@ function mapEventoDTOToEvent(dto: EventoDTO): Event {
     ubicacion: dto.ubicacion || "",
     capacidadMaxima: dto.capacidadMaxima,
     brindaCertificado: dto.brindaCertificado,
-    plantillaImagen: dto.plantillaImagen 
-      ? `data:image/jpeg;base64,${dto.plantillaImagen}` 
-      : "/placeholder.jpg",
+    plantillaImagen: imagenUrl,
     estadoEvento: dto.estadoEvento as "PROGRAMADO" | "EN_CURSO" | "FINALIZADO" | "CANCELADO",
     createdAt: dto.fechaCreacion,
   }
@@ -45,6 +56,20 @@ function mapEventoDTOToEvent(dto: EventoDTO): Event {
  * Mapea un Event del frontend a un objeto para enviar al backend
  */
 function mapEventToBackend(event: Omit<Event, "id" | "createdAt" | "updatedAt">) {
+  // Extraer solo la parte Base64 de la imagen (sin el prefijo data:image/...;base64,)
+  let plantillaImagenBase64: string | null = null
+  
+  if (event.plantillaImagen && event.plantillaImagen !== "/placeholder.jpg") {
+    if (event.plantillaImagen.startsWith("data:")) {
+      // Si viene con el prefijo data:image/...;base64,XXX
+      const base64Data = event.plantillaImagen.split(",")[1]
+      plantillaImagenBase64 = base64Data || null
+    } else {
+      // Si ya es Base64 puro
+      plantillaImagenBase64 = event.plantillaImagen
+    }
+  }
+
   return {
     nombre: event.nombre,
     descripcion: event.descripcion,
@@ -55,7 +80,7 @@ function mapEventToBackend(event: Omit<Event, "id" | "createdAt" | "updatedAt">)
     capacidadMaxima: event.capacidadMaxima || 100,
     brindaCertificado: event.brindaCertificado,
     estadoEvento: event.estadoEvento,
-    // La plantillaImagen se maneja por separado en el backend si es necesario
+    plantillaImagen: plantillaImagenBase64,
   }
 }
 
