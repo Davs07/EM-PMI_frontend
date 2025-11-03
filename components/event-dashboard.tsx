@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, QrCode, FileText, RefreshCw } from "lucide-react"
+import { Upload, Download, QrCode, FileText, RefreshCw, Mail } from "lucide-react"
 import { AttendanceTable } from "./attendance-table"
 import { PMIHeader } from "./pmi-header"
 import { QRScanner } from "./qr-scanner"
@@ -13,9 +13,12 @@ import { AttendeeDetailsModal } from "./attendee-details-modal"
 import { AdvancedSearch } from "./advanced-search"
 import { ReminderModal } from "./reminder-modal"
 import { AddAttendeeModal } from "./add-attendee-modal"
+import SendInvitationsModal from "./send-invitations-modal"
 import { Participante } from "./ui/data/model"
 import { participantService } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
+import { eventService } from "@/services/event-service"
+import type { Event } from "@/types/event"
 
 interface Attendee {
   id: number
@@ -58,18 +61,34 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [showAddAttendeeModal, setShowAddAttendeeModal] = useState(false)
+  const [showInvitationsModal, setShowInvitationsModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentEvent, setCurrentEvent] = useState<Event | null>(null)
 
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [autoRefresh, setAutoRefresh] = useState(false)
 
-  // Cargar participantes desde la API
+  // Cargar evento y participantes desde la API
   useEffect(() => {
     if (eventId) {
+      loadEventData()
       loadParticipantes()
     }
   }, [eventId])
+
+  const loadEventData = async () => {
+    if (!eventId) return
+    try {
+      const events = await eventService.getAll()
+      const event = events.find(e => e.id === eventId)
+      if (event) {
+        setCurrentEvent(event)
+      }
+    } catch (error) {
+      console.error("Error cargando datos del evento:", error)
+    }
+  }
 
   // Auto-refresco opcional cada 30 segundos
   useEffect(() => {
@@ -347,6 +366,14 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
         existingParticipantIds={attendees.map(a => a.id)}
       />
 
+      {currentEvent && (
+        <SendInvitationsModal
+          isOpen={showInvitationsModal}
+          onClose={() => setShowInvitationsModal(false)}
+          event={currentEvent}
+        />
+      )}
+
       <AttendeeDetailsModal
         attendee={selectedAttendee}
         isOpen={showDetailsModal}
@@ -454,6 +481,16 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                       <Upload className="h-4 w-4" />
                       Agregar Participante
                     </Button>
+                    {currentEvent && (
+                      <Button 
+                        onClick={() => setShowInvitationsModal(true)} 
+                        variant="outline" 
+                        className="gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Enviar Invitaciones
+                      </Button>
+                    )}
                   </div>
                 )}
 
