@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, UserPlus, X } from "lucide-react"
 import { participantService } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
 import type { Participante } from "./ui/data/model"
+import { ROLES, type RolParticipante } from "@/types/roles"
 
 interface AddAttendeeModalProps {
   isOpen: boolean
@@ -27,6 +29,9 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
   const [loading, setLoading] = useState(false)
   const [selectedParticipant, setSelectedParticipant] = useState<Participante | null>(null)
   const [adding, setAdding] = useState(false)
+  
+  // Rol para la asistencia (independiente del rol del participante)
+  const [rolAsistencia, setRolAsistencia] = useState<RolParticipante>("ASISTENTE")
   
   // Formulario para nuevo participante
   const [newParticipant, setNewParticipant] = useState({
@@ -85,12 +90,14 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
 
     try {
       setAdding(true)
-      await attendanceService.create(selectedParticipant.id, Number(eventId))
+      // Pasar el rol de asistencia seleccionado
+      await attendanceService.create(selectedParticipant.id, Number(eventId), rolAsistencia)
       
       // Éxito
       onSuccess()
       setSearchTerm("")
       setSelectedParticipant(null)
+      setRolAsistencia("ASISTENTE") // Resetear rol
       onClose()
     } catch (error: any) {
       console.error("Error al agregar participante:", error)
@@ -110,22 +117,45 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
     try {
       setAdding(true)
       
+      console.log("Datos a enviar:", newParticipant)
+      
       // Crear el participante
       const createdParticipant = await participantService.create({
         ...newParticipant,
         evidenciaEstudio: null,
       })
       
-      // Crear la asistencia para el evento
-      await attendanceService.create(createdParticipant.id, Number(eventId))
+      console.log("Participante creado:", createdParticipant)
+      
+      // Crear la asistencia para el evento con el rol seleccionado
+      const attendance = await attendanceService.create(createdParticipant.id, Number(eventId), rolAsistencia)
+      console.log("Asistencia creada:", attendance)
       
       // Éxito
+      alert("Participante creado y agregado exitosamente")
       onSuccess()
       resetForm()
+      setRolAsistencia("ASISTENTE") // Resetear rol
       onClose()
     } catch (error: any) {
       console.error("Error al crear y agregar participante:", error)
-      alert(error.message || "Error al crear el participante. Verifica que el DNI o email no estén duplicados.")
+      
+      // Manejar diferentes tipos de error
+      let errorMessage = "Error desconocido al crear el participante"
+      
+      if (error.message) {
+        if (error.message.includes("email")) {
+          errorMessage = "Error: El email ya está registrado en el sistema"
+        } else if (error.message.includes("dni")) {
+          errorMessage = "Error: El DNI ya está registrado en el sistema"
+        } else if (error.message.includes("duplicado") || error.message.includes("duplicate")) {
+          errorMessage = "Error: Ya existe un participante con estos datos"
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      alert(errorMessage)
     } finally {
       setAdding(false)
     }
@@ -153,6 +183,7 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
     setSelectedParticipant(null)
     setFilteredParticipants([])
     resetForm()
+    setRolAsistencia("ASISTENTE") // Resetear rol de asistencia
     setActiveTab("search")
     onClose()
   }
@@ -191,6 +222,24 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               />
             </div>
             {loading && <p className="text-sm text-gray-500">Cargando participantes...</p>}
+          </div>
+
+          {/* Selector de Rol de Asistencia */}
+          <div className="space-y-2">
+            <Label htmlFor="rol-asistencia">Rol en el Evento</Label>
+            <Select value={rolAsistencia} onValueChange={(value) => setRolAsistencia(value as RolParticipante)}>
+              <SelectTrigger id="rol-asistencia" className="w-full">
+                <SelectValue placeholder="Selecciona un rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((rol) => (
+                  <SelectItem key={rol.value} value={rol.value}>
+                    {rol.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">Este rol se asignará al participante para este evento específico</p>
           </div>
 
           {/* Participante seleccionado */}
@@ -266,6 +315,24 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
 
         {/* Pestaña: Crear Nuevo Participante */}
         <TabsContent value="create" className="space-y-4">
+          {/* Selector de Rol de Asistencia */}
+          <div className="space-y-2 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <Label htmlFor="rol-asistencia-crear">Rol en el Evento *</Label>
+            <Select value={rolAsistencia} onValueChange={(value) => setRolAsistencia(value as RolParticipante)}>
+              <SelectTrigger id="rol-asistencia-crear" className="w-full bg-white">
+                <SelectValue placeholder="Selecciona un rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((rol) => (
+                  <SelectItem key={rol.value} value={rol.value}>
+                    {rol.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-orange-700">Este rol se asignará al participante para este evento específico</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="nombres">Nombres *</Label>
@@ -343,6 +410,7 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               <Label htmlFor="rol">Rol</Label>
               <Input
                 id="rol"
+                disabled
                 value={newParticipant.rol}
                 onChange={(e) => setNewParticipant({ ...newParticipant, rol: e.target.value })}
                 placeholder="Asistente"

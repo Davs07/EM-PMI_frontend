@@ -90,9 +90,23 @@ export const participantService = {
         },
         body: JSON.stringify(participante),
       })
+      
       if (!response.ok) {
-        throw new Error(`Error al crear participante: ${response.status}`)
+        const errorText = await response.text()
+        console.error("Error del servidor:", errorText)
+        
+        // Intentar parsear si es JSON
+        let errorMessage = errorText
+        try {
+          const errorJson = JSON.parse(errorText)
+          errorMessage = errorJson.message || errorText
+        } catch {
+          // Si no es JSON, usar el texto directo
+        }
+        
+        throw new Error(`Error al crear participante: ${errorMessage}`)
       }
+      
       const data: ParticipanteDTO = await response.json()
       return mapParticipanteDTOToParticipante(data)
     } catch (error) {

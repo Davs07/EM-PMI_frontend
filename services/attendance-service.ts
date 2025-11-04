@@ -5,6 +5,7 @@ export interface AsistenciaDTO {
   participanteId: number
   eventoId: number
   asistio: boolean
+  rol?: string // "PONENTE" | "APOYADOR" | "ASISTENTE"
   horaIngreso: string | null
   fechaRegistro: string
 }
@@ -120,13 +121,15 @@ export const attendanceService = {
   /**
    * Crea un nuevo registro de asistencia para un participante en un evento
    */
-  async create(participanteId: number, eventoId: number): Promise<AsistenciaDTO> {
+  async create(participanteId: number, eventoId: number, rol: string = "ASISTENTE"): Promise<AsistenciaDTO> {
     try {
       const payload = {
         participanteId,
         eventoId,
+        rol: rol, // Usar el rol proporcionado o ASISTENTE por defecto
         asistio: false, // Por defecto se crea como ausente
       }
+      console.log("Creating attendance with payload:", payload)
 
       const response = await fetch(`${API_BASE_URL}/asistencias/crear`, {
         method: "POST",
@@ -138,6 +141,12 @@ export const attendanceService = {
 
       if (!response.ok) {
         const errorText = await response.text()
+        
+        if (response.status === 409) {
+          // HTTP 409 Conflict - Ya existe la asistencia
+          throw new Error("El participante ya está registrado en este evento")
+        }
+        
         throw new Error(`Error al crear asistencia: ${response.status} - ${errorText}`)
       }
 
