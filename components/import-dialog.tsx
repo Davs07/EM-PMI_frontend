@@ -5,116 +5,124 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Upload, AlertCircle } from "lucide-react"
+import { Upload, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
 interface ImportDialogProps {
   onClose: () => void
   onImport: (attendees: any[]) => void
+  eventId: string
 }
 
-export function ImportDialog({ onClose, onImport }: ImportDialogProps) {
+export function ImportDialog({ onClose, onImport, eventId }: ImportDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string>("")
-  const [preview, setPreview] = useState<any[]>([])
+  const [success, setSuccess] = useState<string>("")
+  const [isUploading, setIsUploading] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0]
+      
+      // Validar que sea un archivo Excel
+      const validTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+        "application/vnd.ms-excel" // .xls
+      ]
+      
+      if (!validTypes.includes(selectedFile.type)) {
+        setError("Por favor selecciona un archivo Excel válido (.xlsx o .xls)")
+        setFile(null)
+        return
+      }
+      
       setFile(selectedFile)
       setError("")
-      parseFile(selectedFile)
+      setSuccess("")
     }
   }
 
-  const parseFile = async (file: File) => {
+  const handleImport = async () => {
+    if (!file || !eventId) {
+      setError("Debe seleccionar un archivo y tener un evento válido")
+      return
+    }
+
+    setIsUploading(true)
+    setError("")
+    setSuccess("")
+
     try {
-      const text = await file.text()
-      const lines = text.split("\n").filter((line) => line.trim())
+      // Crear FormData para enviar el archivo
+      const formData = new FormData()
+      formData.append("archivo", file)
+      formData.append("eventoId", eventId)
 
-      if (lines.length < 2) {
-        setError("El archivo debe contener al menos un encabezado y una fila de datos")
-        return
-      }
-
-      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase())
-      const nameIndex = headers.findIndex((h) => h.includes("nombre") || h.includes("name"))
-      const emailIndex = headers.findIndex((h) => h.includes("correo") || h.includes("email"))
-
-      if (nameIndex === -1 || emailIndex === -1) {
-        setError("El archivo debe contener columnas 'Nombre' y 'Correo'")
-        return
-      }
-
-      const newAttendees = lines
-        .slice(1)
-        .filter((line) => line.trim())
-        .map((line, idx) => {
-          const fields = line.split(",")
-          return {
-            id: Date.now() + idx,
-            name: fields[nameIndex]?.trim() || "",
-            email: fields[emailIndex]?.trim() || "",
-            status: "absent" as const,
-            type: "presencial",
-          }
-        })
-        .filter((a) => a.name && a.email)
-
-      if (newAttendees.length === 0) {
-        setError("No se encontraron registros válidos en el archivo")
-        return
-      }
-
-      setPreview(newAttendees.slice(0, 5))
-    } catch (err) {
-      setError("Error al procesar el archivo. Asegúrate de que sea un CSV válido.")
-    }
-  }
-
-  const handleImport = () => {
-    if (!file || preview.length === 0) return
-
-    const text = file.textContent || ""
-    const lines = text.split("\n").filter((line) => line.trim())
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase())
-    const nameIndex = headers.findIndex((h) => h.includes("nombre") || h.includes("name"))
-    const emailIndex = headers.findIndex((h) => h.includes("correo") || h.includes("email"))
-
-    const newAttendees = lines
-      .slice(1)
-      .filter((line) => line.trim())
-      .map((line, idx) => {
-        const fields = line.split(",")
-        return {
-          id: Date.now() + idx,
-          name: fields[nameIndex]?.trim() || "",
-          email: fields[emailIndex]?.trim() || "",
-          status: "absent" as const,
-          type: "presencial",
-        }
+      // Enviar al backend
+      const response = await fetch(`${API_BASE_URL}/test/cargar-archivo`, {
+        method: "POST",
+        body: formData,
       })
-      .filter((a) => a.name && a.email)
 
-    onImport(newAttendees)
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Error al procesar el archivo")
+      }
+
+      // Mostrar mensaje de éxito
+      setSuccess(data.message || "Archivo procesado correctamente")
+      
+      // Esperar 1.5 segundos para mostrar el mensaje y luego cerrar
+      setTimeout(() => {
+        onImport([]) // Llamar a onImport para refrescar la lista
+        onClose()
+      }, 1500)
+
+    } catch (err: any) {
+      console.error("Error al importar archivo:", err)
+      setError(err.message || "Error al procesar el archivo. Verifica que el formato sea correcto.")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Importar Asistentes</DialogTitle>
+          <DialogTitle>Importar Participantes desde Excel</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-orange-500 transition-colors">
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
             <label className="cursor-pointer">
-              <span className="text-sm font-medium text-orange-500">Selecciona un archivo CSV</span>
-              <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+              <span className="text-sm font-medium text-orange-500">Selecciona un archivo Excel</span>
+              <input 
+                type="file" 
+                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" 
+                onChange={handleFileChange} 
+                className="hidden"
+                disabled={isUploading}
+              />
             </label>
             {file && <p className="text-sm text-muted-foreground mt-2">{file.name}</p>}
             <p className="text-xs text-muted-foreground mt-3">
-              Formato esperado: Nombre, Correo (las columnas pueden estar en cualquier orden)
+              Formato esperado: Archivo Excel (.xlsx o .xls) con las columnas:
             </p>
+            <div className="text-xs text-muted-foreground mt-2 text-left inline-block">
+              <ul className="list-disc list-inside space-y-1">
+                <li>Nombres</li>
+                <li>Apellido Paterno</li>
+                <li>Apellido Materno</li>
+                <li>DNI</li>
+                <li>Email (obligatorio)</li>
+                <li>Número de WhatsApp</li>
+                <li>Ciudad</li>
+                <li>Rol (Soy...)</li>
+              </ul>
+            </div>
           </div>
 
           {error && (
@@ -124,39 +132,34 @@ export function ImportDialog({ onClose, onImport }: ImportDialogProps) {
             </div>
           )}
 
-          {preview.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Vista previa ({preview.length} registros):</p>
-              <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50 sticky top-0">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Nombre</th>
-                      <th className="px-3 py-2 text-left">Correo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.map((a) => (
-                      <tr key={a.id} className="border-t">
-                        <td className="px-3 py-2">{a.name}</td>
-                        <td className="px-3 py-2">{a.email}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          {success && (
+            <div className="flex gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-700">{success}</p>
             </div>
           )}
 
           <div className="flex gap-2">
             <Button
               onClick={handleImport}
-              disabled={!file || preview.length === 0}
-              className="flex-1 bg-orange-500 hover:bg-orange-600"
+              disabled={!file || isUploading}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
             >
-              Importar {preview.length > 0 && `(${preview.length} registros)`}
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                <>Importar Archivo</>
+              )}
             </Button>
-            <Button onClick={onClose} variant="outline" className="flex-1 bg-transparent">
+            <Button 
+              onClick={onClose} 
+              variant="outline" 
+              className="flex-1 bg-transparent"
+              disabled={isUploading}
+            >
               Cancelar
             </Button>
           </div>

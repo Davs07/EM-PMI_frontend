@@ -339,13 +339,15 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
         />
       )}
 
-      {showImportDialog && (
+      {showImportDialog && eventId && (
         <ImportDialog
           onClose={() => setShowImportDialog(false)}
-          onImport={(newAttendees) => {
-            setAttendees([...attendees, ...newAttendees])
+          onImport={() => {
+            // Recargar participantes después de importar
+            loadParticipantes()
             setShowImportDialog(false)
           }}
+          eventId={eventId}
         />
       )}
 

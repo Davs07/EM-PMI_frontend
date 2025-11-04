@@ -82,12 +82,22 @@ export const emailService = {
     invitacion: InvitacionVirtual
   ): Promise<string> {
     try {
-      const response = await fetch(`${API_BASE_URL}/email/virtual?eventoId=${eventoId}`, {
+      // Usar FormData para enviar los datos
+      const formData = new FormData()
+      formData.append('eventoId', eventoId.toString())
+      formData.append('asunto', invitacion.asunto)
+      formData.append('mensaje', invitacion.mensaje)
+      formData.append('googleMeetLink', invitacion.googleMeetLink)
+      formData.append('inicio', invitacion.inicio)
+      formData.append('fin', invitacion.fin)
+      formData.append('lugar', invitacion.lugar)
+      if (invitacion.flyerPath) {
+        formData.append('flyerPath', invitacion.flyerPath)
+      }
+
+      const response = await fetch(`${API_BASE_URL}/email/virtual`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(invitacion),
+        body: formData,
       })
 
       if (!response.ok) {
@@ -110,12 +120,21 @@ export const emailService = {
     invitacion: InvitacionPresencial
   ): Promise<string> {
     try {
-      const response = await fetch(`${API_BASE_URL}/email/presencial?eventoId=${eventoId}`, {
+      // Usar FormData para enviar los datos
+      const formData = new FormData()
+      formData.append('eventoId', eventoId.toString())
+      formData.append('asunto', invitacion.asunto)
+      formData.append('mensaje', invitacion.mensaje)
+      formData.append('inicio', invitacion.inicio)
+      formData.append('fin', invitacion.fin)
+      formData.append('lugar', invitacion.lugar)
+      if (invitacion.flyerPath) {
+        formData.append('flyerPath', invitacion.flyerPath)
+      }
+
+      const response = await fetch(`${API_BASE_URL}/email/presencial`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(invitacion),
+        body: formData,
       })
 
       if (!response.ok) {

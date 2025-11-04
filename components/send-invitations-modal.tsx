@@ -27,7 +27,22 @@ export default function SendInvitationsModal({ isOpen, onClose, event }: SendInv
   // Estado para Recordatorio (con calendario)
   const [recordatorioData, setRecordatorioData] = useState({
     asunto: `Recordatorio: ${event.nombre}`,
-    mensaje: `Hola {nombre},\n\nTe recordamos que estás registrado para el evento "${event.nombre}".\n\n¡Te esperamos!`,
+    mensaje: `¡Hola {nombre}!, <br>
+⏰ ¡La cuenta regresiva ha comenzado! En solo <strong>3 días></strong> nos encontraremos en el <strong>VI Congreso</strong> <br><strong>Internacional de Dirección de Proyectos</strong>, un evento que reunirá a profesionales y líderes <br>apasionados por la gestión, la innovación y el liderazgo. <br>
+📅 <strong>Fechas: </strong> 7 y 8 de noviembre<br>
+📍 <strong>Lugar: </strong> Colegio de Ingenieros – CECAP | Trujillo, Perú<br>
+Durante estos dos días vivirás una experiencia única de <strong>aprendizaje, inspiración y conexión</strong>, <br>junto a <strong>ponentes nacionales e internacionales </strong>que compartirán tendencias, herramientas <br>y casos de éxito en gestión de proyectos. <br>
+💼 <strong>Prepárate para: </strong> <br>
+•	Conferencias magistrales con expertos reconocidos<br>
+•	Espacios de networking y colaboración<br>
+•	Actividades de desarrollo profesional<br>
+•	Una comunidad que impulsa el cambio y la excelencia<br>
+Y si aún no lo has hecho, visita la web oficial para conocer el programa completo y los detalles logísticos: <br>
+🌐 congresotrujillo2025.pminorteperu.org<br>
+¡Gracias por ser parte de esta gran experiencia! <br>
+Nos vemos muy pronto en Trujillo 👋<br>
+Atte, <br>
+<strong>Equipo PMI Norte Perú</strong>`,
     resumenEvento: event.nombre,
     descripcionEvento: event.descripcion || "",
     inicio: event.fechaInicio ? new Date(event.fechaInicio).toISOString() : new Date().toISOString(),
