@@ -1,30 +1,53 @@
-# Event attendance control
+# EM-PMI_frontend
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+Proyecto frontend creado con Next.js + TypeScript. Interfaz para la aplicación EM-PMI (deploy: https://em-pmi.vercel.app).
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/thesupergamers947-8235s-projects/v0-event-attendance-control)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/rVBRZhfeRVz)
+Tecnologías principales
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Radix UI
+- Otras: react-hook-form, zod, recharts, date-fns
 
-## Overview
+Requisitos
+- Node.js (recomendado >= 18)
+- npm o pnpm (el repo contiene lockfiles para npm y pnpm)
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+Instalación (básica)
+1. Clona el repositorio:
+   git clone https://github.com/Davs07/EM-PMI_frontend.git
+2. Entra al directorio:
+   cd EM-PMI_frontend
+3. Instala dependencias:
+   - con npm: npm install
+   - con pnpm: pnpm install
 
-## Deployment
+Variables de entorno
+- Revisa `.env.example` y `ENV_CONFIG.md` para las variables necesarias y su explicación.
+- Crea un archivo `.env` o configura las variables según tu entorno antes de ejecutar la app.
 
-Your project is live at:
+Comandos útiles
+- Desarrollo: npm run dev
+- Build (producción): npm run build
+- Ejecutar (producción): npm start
+- Lint: npm run lint
 
-**[https://vercel.com/thesupergamers947-8235s-projects/v0-event-attendance-control](https://vercel.com/thesupergamers947-8235s-projects/v0-event-attendance-control)**
+Estructura (resumen)
+- app/         — rutas y páginas de Next.js (carpeta principal de la app)
+- components/  — componentes reutilizables
+- services/    — llamadas a APIs / lógica de servicios
+- styles/      — estilos globales / utilidades de Tailwind
+- public/      — assets públicos
+- types/       — tipos TypeScript
+- lib/         — utilidades y configuración
+- ENV_CONFIG.md y .env.example — configuración de variables de entorno
 
-## Build your app
+Cómo contribuir
+- Crea una rama nueva para tu cambio: git checkout -b feature/mi-cambio
+- Haz commits claros y descriptivos.
+- Abre un Pull Request contra `main`.
 
-Continue building your app on:
-
-**[https://v0.app/chat/projects/rVBRZhfeRVz](https://v0.app/chat/projects/rVBRZhfeRVz)**
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Más info
+- Repo: https://github.com/Davs07/EM-PMI_frontend
+- Sitio en producción: https://em-pmi.vercel.app
