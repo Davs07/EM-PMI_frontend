@@ -24,6 +24,25 @@ export default function SendInvitationsModal({ isOpen, onClose, event }: SendInv
   const [successMessage, setSuccessMessage] = useState<string>("")
   const [errorMessage, setErrorMessage] = useState<string>("")
 
+  // Función helper para convertir datetime-local a ISO string manteniendo la zona horaria
+  const dateTimeLocalToISO = (dateTimeLocalValue: string): string => {
+    // El input datetime-local devuelve el valor en formato "YYYY-MM-DDTHH:mm"
+    // Lo convertimos a una fecha local y luego a ISO
+    const localDate = new Date(dateTimeLocalValue)
+    return localDate.toISOString()
+  }
+
+  // Función helper para convertir ISO string a formato datetime-local
+  const isoToDateTimeLocal = (isoString: string): string => {
+    const date = new Date(isoString)
+    // Obtener la zona horaria offset en minutos
+    const offset = date.getTimezoneOffset()
+    // Ajustar la fecha restando el offset para obtener la hora local
+    const localDate = new Date(date.getTime() - offset * 60 * 1000)
+    // Devolver en formato "YYYY-MM-DDTHH:mm"
+    return localDate.toISOString().slice(0, 16)
+  }
+
   // Estado para Recordatorio (con calendario)
   const [recordatorioData, setRecordatorioData] = useState({
     asunto: `Recordatorio: ${event.nombre}`,
@@ -201,9 +220,9 @@ Atte, <br>
                 <Input
                   id="rec-inicio"
                   type="datetime-local"
-                  value={recordatorioData.inicio.slice(0, 16)}
+                  value={isoToDateTimeLocal(recordatorioData.inicio)}
                   onChange={(e) =>
-                    setRecordatorioData({ ...recordatorioData, inicio: new Date(e.target.value).toISOString() })
+                    setRecordatorioData({ ...recordatorioData, inicio: dateTimeLocalToISO(e.target.value) })
                   }
                 />
               </div>
@@ -212,9 +231,9 @@ Atte, <br>
                 <Input
                   id="rec-fin"
                   type="datetime-local"
-                  value={recordatorioData.fin.slice(0, 16)}
+                  value={isoToDateTimeLocal(recordatorioData.fin)}
                   onChange={(e) =>
-                    setRecordatorioData({ ...recordatorioData, fin: new Date(e.target.value).toISOString() })
+                    setRecordatorioData({ ...recordatorioData, fin: dateTimeLocalToISO(e.target.value) })
                   }
                 />
               </div>
@@ -325,9 +344,9 @@ Atte, <br>
                 <Input
                   id="virt-inicio"
                   type="datetime-local"
-                  value={virtualData.inicio.slice(0, 16)}
+                  value={isoToDateTimeLocal(virtualData.inicio)}
                   onChange={(e) =>
-                    setVirtualData({ ...virtualData, inicio: new Date(e.target.value).toISOString() })
+                    setVirtualData({ ...virtualData, inicio: dateTimeLocalToISO(e.target.value) })
                   }
                 />
               </div>
@@ -336,8 +355,8 @@ Atte, <br>
                 <Input
                   id="virt-fin"
                   type="datetime-local"
-                  value={virtualData.fin.slice(0, 16)}
-                  onChange={(e) => setVirtualData({ ...virtualData, fin: new Date(e.target.value).toISOString() })}
+                  value={isoToDateTimeLocal(virtualData.fin)}
+                  onChange={(e) => setVirtualData({ ...virtualData, fin: dateTimeLocalToISO(e.target.value) })}
                 />
               </div>
             </div>
@@ -406,9 +425,9 @@ Atte, <br>
                 <Input
                   id="pres-inicio"
                   type="datetime-local"
-                  value={presencialData.inicio.slice(0, 16)}
+                  value={isoToDateTimeLocal(presencialData.inicio)}
                   onChange={(e) =>
-                    setPresencialData({ ...presencialData, inicio: new Date(e.target.value).toISOString() })
+                    setPresencialData({ ...presencialData, inicio: dateTimeLocalToISO(e.target.value) })
                   }
                 />
               </div>
@@ -417,8 +436,8 @@ Atte, <br>
                 <Input
                   id="pres-fin"
                   type="datetime-local"
-                  value={presencialData.fin.slice(0, 16)}
-                  onChange={(e) => setPresencialData({ ...presencialData, fin: new Date(e.target.value).toISOString() })}
+                  value={isoToDateTimeLocal(presencialData.fin)}
+                  onChange={(e) => setPresencialData({ ...presencialData, fin: dateTimeLocalToISO(e.target.value) })}
                 />
               </div>
             </div>
