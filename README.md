@@ -187,7 +187,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ## Autores
 
-- **David Sánchez** - [@Davs07](https://github.com/Davs07)
+-
 
 ## Enlaces
 
