@@ -148,4 +148,35 @@ export const emailService = {
       throw error
     }
   },
+
+  /**
+   * Envía certificados de participación a todos los asistentes del evento
+   */
+  async enviarCertificados(
+    eventoId: number,
+    mensaje: string
+  ): Promise<string> {
+    try {
+      // Convertir saltos de línea a <br> para mantener el formato de mensaje
+      const mensajeConSaltosDeLinea = mensaje.replace(/\n/g, '<br>')
+      
+      const formData = new FormData()
+      formData.append("mensaje", mensajeConSaltosDeLinea)
+
+      const response = await fetch(`${API_BASE_URL}/certificados/evento/${eventoId}/enviar`, {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || `Error al enviar certificados: ${response.status}`)
+      }
+
+      return await response.text()
+    } catch (error) {
+      console.error("Error sending certificates:", error)
+      throw error
+    }
+  },
 }

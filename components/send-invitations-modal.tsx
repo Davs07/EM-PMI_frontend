@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -70,6 +70,11 @@ Atte, <br>
     lugar: event.ubicacion || "Por definir",
   })
 
+  // Estado para Certificados
+  const [certificadoData, setCertificadoData] = useState({
+    mensaje: `Felicidades por tu participación en ${event.nombre}. Tu certificado está adjunto en este correo.`,
+  })
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
     setRecordatorioData({ ...recordatorioData, flyer: file })
@@ -135,11 +140,60 @@ Atte, <br>
     }
   }
 
+  const handleEnviarCertificados = async () => {
+    resetMessages()
+    if (!certificadoData.mensaje.trim()) {
+      setErrorMessage("Por favor, ingresa un mensaje para los certificados")
+      return
+    }
+    setLoading(true)
+    try {
+      const response = await emailService.enviarCertificados(Number(event.id), certificadoData.mensaje)
+      setSuccessMessage(response || "✅ Certificados enviados correctamente")
+    } catch (error) {
+      setErrorMessage(`Error: ${error instanceof Error ? error.message : "Error desconocido"}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleClose = () => {
     resetMessages()
     onClose()
   }
 
+  // Actualizar fechas cuando el evento cambie
+  useEffect(() => {
+    const inicioISO = event.fechaInicio ? new Date(event.fechaInicio).toISOString() : new Date().toISOString()
+    const finISO = event.fechaFin 
+      ? new Date(event.fechaFin).toISOString() 
+      : new Date(new Date(event.fechaInicio || new Date()).getTime() + 2 * 60 * 60 * 1000).toISOString()
+
+    setRecordatorioData(prev => ({
+      ...prev,
+      asunto: `Recordatorio: ${event.nombre}`,
+      resumenEvento: event.nombre,
+      descripcionEvento: event.descripcion || "",
+      inicio: inicioISO,
+      fin: finISO,
+      lugar: event.ubicacion || "Por definir",
+    }))
+
+    setVirtualData(prev => ({
+      ...prev,
+      asunto: `Invitación Virtual: ${event.nombre}`,
+      inicio: inicioISO,
+      fin: finISO,
+    }))
+
+    setPresencialData(prev => ({
+      ...prev,
+      asunto: `Invitación Presencial: ${event.nombre}`,
+      inicio: inicioISO,
+      fin: finISO,
+      lugar: event.ubicacion || "Por definir",
+    }))
+  }, [event])
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -151,7 +205,7 @@ Atte, <br>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="recordatorio">
               <CalendarIcon className="h-4 w-4 mr-2" />
               Recordatorio
@@ -163,6 +217,10 @@ Atte, <br>
             <TabsTrigger value="presencial">
               <Mail className="h-4 w-4 mr-2" />
               Presencial
+            </TabsTrigger>
+            <TabsTrigger value="certificados">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Certificados
             </TabsTrigger>
           </TabsList>
 
@@ -457,6 +515,68 @@ Atte, <br>
                 <>
                   <Send className="mr-2 h-4 w-4" />
                   Enviar Invitación Presencial
+                </>
+              )}
+            </Button>
+          </TabsContent>
+
+          {/* TAB: CERTIFICADOS */}
+          <TabsContent value="certificados" className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Envía certificados de participación a todos los asistentes que marcaron asistencia en el evento.
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cert-mensaje">
+                Mensaje Personalizado *
+              </Label>
+              <Textarea
+                id="cert-mensaje"
+                value={certificadoData.mensaje}
+                onChange={(e) => setCertificadoData({ ...certificadoData, mensaje: e.target.value })}
+                rows={6}
+                placeholder="Escribe un mensaje que acompañará el certificado..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Este mensaje se incluirá en el correo junto con el certificado PDF adjunto.
+              </p>
+            </div>
+
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Información:</strong>
+              </p>
+              <ul className="text-xs text-blue-700 mt-2 space-y-1">
+                <li>• Solo se enviarán certificados a participantes que asistieron al evento</li>
+                <li>• El sistema generará automáticamente un código único para cada certificado</li>
+                <li>• Si un certificado ya fue generado previamente, se reutilizará el mismo código</li>
+              </ul>
+            </div>
+
+            {successMessage && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded text-green-800">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-red-800">
+                <XCircle className="h-5 w-5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <Button onClick={handleEnviarCertificados} disabled={loading} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando Certificados...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Enviar Certificados
                 </>
               )}
             </Button>
