@@ -3,18 +3,17 @@
 import { useState, useEffect } from "react"
 import { EventsGallery } from "./events-gallery"
 import { EventFormModal } from "./event-form-modal"
-import { EventDetailView } from "./event-detail-view"
 import type { Event } from "@/types/event"
 import { eventService } from "@/services/event-service"
+import { useRouter } from "next/navigation"
 
 export function EventsManager() {
-  const [view, setView] = useState<"gallery" | "detail">("gallery")
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFormModal, setShowFormModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   // Cargar eventos al montar el componente
   useEffect(() => {
@@ -78,21 +77,17 @@ export function EventsManager() {
   }
 
   const handleSelectEvent = (event: Event) => {
-    setSelectedEvent(event)
-    setView("detail")
-  }
-
-  const handleBackToGallery = () => {
-    setView("gallery")
-    setSelectedEvent(null)
+    router.push(`/events/${event.id}`)
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-lg">Cargando eventos...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-primary/30 border-t-primary"></div>
+        <p className="text-muted-foreground animate-pulse">Cargando eventos...</p>
       </div>
     )
+
   }
 
   if (error) {
@@ -102,7 +97,7 @@ export function EventsManager() {
           <p className="text-lg text-red-600 mb-4">{error}</p>
           <button
             onClick={loadEvents}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
           >
             Reintentar
           </button>
@@ -113,21 +108,15 @@ export function EventsManager() {
 
   return (
     <div className="min-h-screen bg-background">
-      {view === "gallery" ? (
-        <div className="container mx-auto px-4 py-8">
-          <EventsGallery
-            events={events}
-            onCreateEvent={handleCreateEvent}
-            onEditEvent={handleEditEvent}
-            onDeleteEvent={handleDeleteEvent}
-            onSelectEvent={handleSelectEvent}
-          />
-        </div>
-      ) : selectedEvent ? (
-        <div className="container mx-auto px-4 py-8">
-          <EventDetailView event={selectedEvent} onBack={handleBackToGallery} onEdit={handleEditEvent} />
-        </div>
-      ) : null}
+      <div className="container mx-auto px-4 py-8">
+        <EventsGallery
+          events={events}
+          onCreateEvent={handleCreateEvent}
+          onEditEvent={handleEditEvent}
+          onDeleteEvent={handleDeleteEvent}
+          onSelectEvent={handleSelectEvent}
+        />
+      </div>
 
       <EventFormModal
         isOpen={showFormModal}
@@ -141,3 +130,4 @@ export function EventsManager() {
     </div>
   )
 }
+

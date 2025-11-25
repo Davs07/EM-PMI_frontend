@@ -94,18 +94,18 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-purple-700">{initialEvent ? "Editar Evento" : "Crear Nuevo Evento"}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2rem] p-8 border-0 shadow-2xl">
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">{initialEvent ? "Editar Evento" : "Crear Nuevo Evento"}</DialogTitle>
+          <DialogDescription className="text-base text-muted-foreground">
             {initialEvent ? "Actualiza los detalles del evento" : "Completa la información del nuevo evento"}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="nombre" className="text-purple-700 font-semibold">
+              <Label htmlFor="nombre" className="text-foreground font-semibold">
                 Nombre del Evento *
               </Label>
               <Input
@@ -113,19 +113,19 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
                 value={formData.nombre || ""}
                 onChange={(e) => handleChange("nombre", e.target.value)}
                 placeholder="Ej: VI Congreso Internacional"
-                className="border-gray-300"
+                className="border-gray-200 rounded-xl h-11 focus:ring-primary/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tipo" className="text-purple-700 font-semibold">
+              <Label htmlFor="tipo" className="text-foreground font-semibold">
                 Tipo de Evento *
               </Label>
               <Select value={formData.tipo} onValueChange={(value) => handleChange("tipo", value)}>
-                <SelectTrigger className="border-gray-300">
+                <SelectTrigger className="border-gray-200 rounded-xl h-11 focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="PRESENCIAL">Presencial</SelectItem>
                   <SelectItem value="VIRTUAL">Virtual</SelectItem>
                   <SelectItem value="HIBRIDO">Híbrido</SelectItem>
@@ -135,7 +135,7 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="descripcion" className="text-purple-700 font-semibold">
+            <Label htmlFor="descripcion" className="text-foreground font-semibold">
               Descripción *
             </Label>
             <Textarea
@@ -143,13 +143,13 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
               value={formData.descripcion || ""}
               onChange={(e) => handleChange("descripcion", e.target.value)}
               placeholder="Describe el evento..."
-              className="border-gray-300 min-h-24"
+              className="border-gray-200 rounded-xl min-h-24 focus:ring-primary/20"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="fechaInicio" className="text-purple-700 font-semibold">
+              <Label htmlFor="fechaInicio" className="text-foreground font-semibold">
                 Fecha de Inicio *
               </Label>
               <Input
@@ -157,12 +157,12 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
                 type="datetime-local"
                 value={formData.fechaInicio || ""}
                 onChange={(e) => handleChange("fechaInicio", e.target.value)}
-                className="border-gray-300"
+                className="border-gray-200 rounded-xl h-11 focus:ring-primary/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fechaFin" className="text-purple-700 font-semibold">
+              <Label htmlFor="fechaFin" className="text-foreground font-semibold">
                 Fecha de Fin *
               </Label>
               <Input
@@ -170,14 +170,14 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
                 type="datetime-local"
                 value={formData.fechaFin || ""}
                 onChange={(e) => handleChange("fechaFin", e.target.value)}
-                className="border-gray-300"
+                className="border-gray-200 rounded-xl h-11 focus:ring-primary/20"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="ubicacion" className="text-purple-700 font-semibold">
+              <Label htmlFor="ubicacion" className="text-foreground font-semibold">
                 Ubicación
               </Label>
               <Input
@@ -185,12 +185,12 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
                 value={formData.ubicacion || ""}
                 onChange={(e) => handleChange("ubicacion", e.target.value)}
                 placeholder="Ej: Trujillo, Perú"
-                className="border-gray-300"
+                className="border-gray-200 rounded-xl h-11 focus:ring-primary/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="capacidadMaxima" className="text-purple-700 font-semibold">
+              <Label htmlFor="capacidadMaxima" className="text-foreground font-semibold">
                 Capacidad Máxima
               </Label>
               <Input
@@ -201,21 +201,21 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
                   handleChange("capacidadMaxima", e.target.value ? Number.parseInt(e.target.value) : undefined)
                 }
                 placeholder="Ej: 500"
-                className="border-gray-300"
+                className="border-gray-200 rounded-xl h-11 focus:ring-primary/20"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="estadoEvento" className="text-purple-700 font-semibold">
+              <Label htmlFor="estadoEvento" className="text-foreground font-semibold">
                 Estado del Evento
               </Label>
               <Select value={formData.estadoEvento} onValueChange={(value) => handleChange("estadoEvento", value)}>
-                <SelectTrigger className="border-gray-300">
+                <SelectTrigger className="border-gray-200 rounded-xl h-11 focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="PROGRAMADO">Programado</SelectItem>
                   <SelectItem value="EN_CURSO">En Curso</SelectItem>
                   <SelectItem value="FINALIZADO">Finalizado</SelectItem>
@@ -225,44 +225,44 @@ export function EventFormModal({ isOpen, onClose, onSave, initialEvent }: EventF
             </div>
 
             <div className="space-y-2">
-              <Label className="text-purple-700 font-semibold">Opciones</Label>
-              <div className="flex items-center gap-4 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <Label className="text-foreground font-semibold">Opciones</Label>
+              <div className="flex items-center gap-4 pt-3">
+                <label className="flex items-center gap-2 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={formData.brindaCertificado || false}
                     onChange={(e) => handleChange("brindaCertificado", e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300"
+                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary/20"
                   />
-                  <span className="text-sm text-gray-700">Brinda Certificado</span>
+                  <span className="text-sm text-gray-700 group-hover:text-primary transition-colors">Brinda Certificado</span>
                 </label>
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="imagen" className="text-purple-700 font-semibold">
+            <Label htmlFor="imagen" className="text-foreground font-semibold">
               Imagen del Evento
             </Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-              <input id="imagen" type="file" accept="image/*" onChange={handleImageUpload} className="w-full" />
+            <div className="border-2 border-dashed border-gray-200 hover:border-primary/50 transition-colors rounded-2xl p-6 text-center">
+              <input id="imagen" type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
               {formData.plantillaImagen && (
                 <div className="mt-4">
                   <img
                     src={formData.plantillaImagen || "/placeholder.svg"}
                     alt="Preview"
-                    className="w-full h-32 object-cover rounded"
+                    className="w-full h-40 object-cover rounded-xl shadow-sm"
                   />
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
+          <div className="flex gap-3 pt-6">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-full h-12 border-gray-200 hover:bg-gray-50">
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white">
+            <Button type="submit" className="flex-1 rounded-full h-12 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20">
               {initialEvent ? "Actualizar Evento" : "Crear Evento"}
             </Button>
           </div>

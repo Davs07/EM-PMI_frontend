@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, QrCode, FileText, RefreshCw, Mail } from "lucide-react"
+import { Upload, Download, QrCode, FileText, RefreshCw, Mail, Search, Filter, UserPlus } from "lucide-react"
 import { AttendanceTable } from "./attendance-table"
 import { PMIHeader } from "./pmi-header"
 import { QRScanner } from "./qr-scanner"
@@ -19,6 +19,7 @@ import { participantService } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
 import { eventService } from "@/services/event-service"
 import type { Event } from "@/types/event"
+import { cn } from "@/lib/utils"
 
 interface Attendee {
   id: number
@@ -112,7 +113,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
       setError(null)
       // Cargar participantes específicos del evento usando el nuevo endpoint
       const participantes = await participantService.getByEventId(eventId)
-      
+
       // Transformar Participante a Attendee y cargar estado de asistencia
       const transformedAttendeesPromises = participantes.map(async (p: Participante) => {
         let attendanceStatus: "present" | "absent" = "absent"
@@ -123,12 +124,12 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
           hour: "2-digit",
           minute: "2-digit"
         })
-        
+
         // Intentar obtener el estado de asistencia desde el backend
         try {
           const asistencia = await attendanceService.getByParticipantAndEvent(p.id, Number(eventId))
           attendanceStatus = asistencia.asistio ? "present" : "absent"
-          
+
           // Usar la fecha de registro real de la asistencia
           if (asistencia.fechaRegistro) {
             registrationDate = new Date(asistencia.fechaRegistro).toLocaleDateString("es-ES", {
@@ -170,7 +171,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
           participante: p,
         } as Attendee
       })
-      
+
       const transformedAttendees = await Promise.all(transformedAttendeesPromises)
       setAttendees(transformedAttendees)
     } catch (err) {
@@ -314,22 +315,22 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background/50">
       <PMIHeader />
 
       {showQRScanner && (
         <QRScanner
           onClose={() => setShowQRScanner(false)}
-          attendees={attendees.map(a => ({ 
-            id: a.id, 
+          attendees={attendees.map(a => ({
+            id: a.id,
             fullName: a.fullName,
-            dni: a.dni 
+            dni: a.dni
           }))}
           onScan={(participanteId: number, success: boolean) => {
             if (success) {
               // Actualizar el estado del participante en la lista local
               setAttendees(
-                attendees.map((a) => 
+                attendees.map((a) =>
                   a.id === participanteId ? { ...a, status: "present" } : a
                 )
               )
@@ -385,31 +386,54 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
         }}
       />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-0 py-8 space-y-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="asistentes" className="text-base">
-              Asistentes
-            </TabsTrigger>
-            <TabsTrigger value="ponentes" className="text-base">
-              Ponentes
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <TabsList className="bg-transparent p-0 gap-2">
+              <TabsTrigger
+                value="asistentes"
+                className="rounded-full px-6 py-2 border border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:bg-white data-[state=inactive]:border-gray-200 hover:bg-gray-50 transition-all"
+              >
+                Asistentes
+              </TabsTrigger>
+              <TabsTrigger
+                value="ponentes"
+                className="rounded-full px-6 py-2 border border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:bg-white data-[state=inactive]:border-gray-200 hover:bg-gray-50 transition-all"
+              >
+                Ponentes
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={loadParticipantes}
+                disabled={isLoading}
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-full bg-white border-gray-200 hover:bg-gray-50 shadow-sm"
+                title="Recargar datos desde el servidor"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Recargar
+              </Button>
+            </div>
+          </div>
 
           {["asistentes", "ponentes"].map((tab) => (
-            <TabsContent key={tab} value={tab} className="space-y-6">
-              <Card className="p-6">
-                <div className="mb-6">
-                  <AdvancedSearch onSearch={handleSearch} onClear={handleClearSearch} />
-                </div>
+            <TabsContent key={tab} value={tab} className="space-y-6 animate-fade-in">
+              <Card className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
+                <div className="flex flex-col gap-6 mb-8">
+                  {/* Header Controls */}
+                  <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
+                    <div className="flex-1 w-full lg:w-auto">
+                      <AdvancedSearch onSearch={handleSearch} onClear={handleClearSearch} />
+                    </div>
 
-                <div className="flex flex-col gap-4 mb-6">
-                  <div className="flex gap-2 flex-wrap items-center justify-between">
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
                       <Button
                         variant={attendanceFilter === "all" ? "default" : "outline"}
                         onClick={() => setAttendanceFilter("all")}
-                        className="rounded-full"
+                        className={cn("rounded-full px-4", attendanceFilter === "all" ? "bg-gray-900 text-white hover:bg-black" : "bg-white border-gray-200 hover:bg-gray-50")}
                         size="sm"
                       >
                         Todos
@@ -417,7 +441,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                       <Button
                         variant={attendanceFilter === "present" ? "default" : "outline"}
                         onClick={() => setAttendanceFilter("present")}
-                        className="rounded-full"
+                        className={cn("rounded-full px-4", attendanceFilter === "present" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-white border-gray-200 hover:bg-gray-50")}
                         size="sm"
                       >
                         Asistió
@@ -425,111 +449,79 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                       <Button
                         variant={attendanceFilter === "absent" ? "default" : "outline"}
                         onClick={() => setAttendanceFilter("absent")}
-                        className="rounded-full"
+                        className={cn("rounded-full px-4", attendanceFilter === "absent" ? "bg-orange-600 hover:bg-orange-700 text-white" : "bg-white border-gray-200 hover:bg-gray-50")}
                         size="sm"
                       >
-                        No Asís
+                        No Asistió
                       </Button>
-                    </div>
-                    
-                    <div className="flex gap-2 items-center">
-                      <Button
-                        onClick={loadParticipantes}
-                        disabled={isLoading}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        title="Recargar datos desde el servidor"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                        Recargar
-                      </Button>
-                      
-                      <div className="flex items-center gap-2 px-3 py-1 border rounded-md">
-                        <input
-                          type="checkbox"
-                          id="autoRefresh"
-                          checked={autoRefresh}
-                          onChange={(e) => setAutoRefresh(e.target.checked)}
-                          className="cursor-pointer"
-                        />
-                        <label htmlFor="autoRefresh" className="text-sm cursor-pointer whitespace-nowrap">
-                          Auto-actualizar
-                        </label>
-                      </div>
                     </div>
                   </div>
 
-                  {searchTerm && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>
-                        Búsqueda: "{searchTerm}" en{" "}
-                        {searchField === "nombre" ? "Nombre" : searchField === "dni" ? "DNI" : "Email"}
-                      </span>
-                      <button onClick={handleClearSearch} className="text-orange-500 hover:text-orange-600 font-medium">
-                        Limpiar
-                      </button>
+                  {/* Action Buttons */}
+                  {activeTab === "asistentes" && (
+                    <div className="flex flex-wrap gap-3 p-1">
+                      <Button onClick={() => setShowQRScanner(true)} className="gap-2 rounded-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                        <QrCode className="h-4 w-4" />
+                        Escanear QR
+                      </Button>
+                      <Button onClick={() => setShowAddAttendeeModal(true)} variant="outline" className="gap-2 rounded-full bg-white border-gray-200 hover:bg-gray-50">
+                        <UserPlus className="h-4 w-4" />
+                        Agregar
+                      </Button>
+                      {currentEvent && (
+                        <Button
+                          onClick={() => setShowInvitationsModal(true)}
+                          variant="outline"
+                          className="gap-2 rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Invitaciones
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
 
-                {activeTab === "asistentes" && (
-                  <div className="mb-6 flex gap-2 flex-wrap">
-                    <Button onClick={() => setShowQRScanner(true)} className="gap-2 bg-orange-500 hover:bg-orange-600">
-                      <QrCode className="h-4 w-4" />
-                      Escanear QR
-                    </Button>
-                    <Button onClick={() => setShowAddAttendeeModal(true)} variant="outline" className="gap-2">
-                      <Upload className="h-4 w-4" />
-                      Agregar Participante
-                    </Button>
-                    {currentEvent && (
-                      <Button 
-                        onClick={() => setShowInvitationsModal(true)} 
-                        variant="outline" 
-                        className="gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
-                      >
-                        <Mail className="h-4 w-4" />
-                        Enviar Invitaciones
-                      </Button>
-                    )}
-                  </div>
-                )}
-
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Cargando participantes desde el backend...
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground animate-pulse">
+                    <RefreshCw className="h-8 w-8 animate-spin mb-4 text-primary" />
+                    <p>Cargando participantes...</p>
                   </div>
                 ) : error ? (
-                  <div className="text-center py-8">
-                    <p className="text-red-500 mb-4">{error}</p>
-                    <Button onClick={loadParticipantes} variant="outline">
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="bg-red-50 text-red-600 p-4 rounded-full mb-4 dark:bg-red-900/20 dark:text-red-400">
+                      <Filter className="h-8 w-8" />
+                    </div>
+                    <p className="text-red-600 dark:text-red-400 mb-4 font-medium">{error}</p>
+                    <Button onClick={loadParticipantes} variant="outline" className="rounded-full">
                       Reintentar
                     </Button>
                   </div>
                 ) : (
-                  <AttendanceTable
-                    attendees={filteredAttendees as any}
-                    onToggleAttendance={toggleAttendance}
-                    onViewDetails={handleViewDetails as any}
-                  />
+                  <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+                    <AttendanceTable
+                      attendees={filteredAttendees as any}
+                      onToggleAttendance={toggleAttendance}
+                      onViewDetails={handleViewDetails as any}
+                    />
+                  </div>
                 )}
 
-                <div className="flex gap-2 mt-6 flex-wrap">
-                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 bg-transparent">
+                <div className="flex gap-2 mt-8 flex-wrap justify-end border-t border-gray-100 pt-6">
+                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 rounded-full border-gray-200">
                     <Upload className="h-4 w-4" />
                     Importar
                   </Button>
-                  <Button onClick={handleExportCSV} className="gap-2 bg-orange-500 hover:bg-orange-600">
+                  <Button onClick={handleExportCSV} variant="outline" className="gap-2 rounded-full border-gray-200">
                     <Download className="h-4 w-4" />
-                    Exportar CSV
+                    CSV
                   </Button>
-                  <Button onClick={handleExportPDF} variant="outline" className="gap-2 bg-transparent">
+                  <Button onClick={handleExportPDF} variant="outline" className="gap-2 rounded-full border-gray-200">
                     <FileText className="h-4 w-4" />
-                    Exportar Reporte
+                    Reporte
                   </Button>
-                  <Button onClick={() => setShowReminderModal(true)} variant="outline" className="gap-2 bg-transparent">
-                    Crear Recordatorio
+                  <Button onClick={() => setShowReminderModal(true)} variant="ghost" className="gap-2 rounded-full text-muted-foreground hover:text-foreground">
+                    Recordatorio
                   </Button>
                 </div>
               </Card>
@@ -540,3 +532,4 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
     </div>
   )
 }
+
