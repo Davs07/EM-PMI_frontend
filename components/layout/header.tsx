@@ -6,7 +6,7 @@ import { Menu } from "lucide-react"
 
 export function Header() {
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-black/95 dark:border-border/40">
+        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white  dark:bg-black/95 dark:border-border/40">
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center gap-2">
@@ -20,21 +20,6 @@ export function Header() {
                     </Link>
                 </div>
 
-                {/* Desktop Navigation */}
-                <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-                    <Link href="/" className="hover:text-primary transition-colors">
-                        Eventos
-                    </Link>
-                    <Link href="#" className="hover:text-primary transition-colors">
-                        Certificaciones
-                    </Link>
-                    <Link href="#" className="hover:text-primary transition-colors">
-                        Membresía
-                    </Link>
-                    <Link href="#" className="hover:text-primary transition-colors">
-                        Recursos
-                    </Link>
-                </nav>
 
                 {/* Auth Buttons */}
                 <div className="hidden md:flex items-center gap-4">

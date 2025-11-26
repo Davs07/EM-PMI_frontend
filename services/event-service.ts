@@ -2,6 +2,16 @@ import type { Event } from "@/types/event"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
+export interface PaginatedResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number // current page (0-indexed)
+  first: boolean
+  last: boolean
+}
+
 export interface EventoDTO {
   id: number
   nombre: string
@@ -25,7 +35,7 @@ export interface EventoDTO {
 function mapEventoDTOToEvent(dto: EventoDTO): Event {
   // Procesar la imagen correctamente
   let imagenUrl = "/placeholder.jpg"
-  
+
   if (dto.plantillaImagen && dto.plantillaImagen.trim() !== "") {
     // Si ya viene con el prefijo data:image
     if (dto.plantillaImagen.startsWith("data:")) {
@@ -58,7 +68,7 @@ function mapEventoDTOToEvent(dto: EventoDTO): Event {
 function mapEventToBackend(event: Omit<Event, "id" | "createdAt" | "updatedAt">) {
   // Extraer solo la parte Base64 de la imagen (sin el prefijo data:image/...;base64,)
   let plantillaImagenBase64: string | null = null
-  
+
   if (event.plantillaImagen && event.plantillaImagen !== "/placeholder.jpg") {
     if (event.plantillaImagen.startsWith("data:")) {
       // Si viene con el prefijo data:image/...;base64,XXX
@@ -86,15 +96,38 @@ function mapEventToBackend(event: Omit<Event, "id" | "createdAt" | "updatedAt">)
 
 export const eventService = {
   /**
-   * Obtiene todos los eventos desde el backend
+   * Obtiene todos los eventos desde el backend con paginación
    */
-  async getAll(): Promise<Event[]> {
+  async getAll(page = 0, size = 10, sortBy = "id", sortDir = "desc"): Promise<Event[] | PaginatedResponse<Event>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/eventos/listar`)
+      const url = size === -1
+        ? `${API_BASE_URL}/eventos/listar?page=-1&size=-1`
+        : `${API_BASE_URL}/eventos/listar?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`
+
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`Error al obtener eventos: ${response.status}`)
       }
-      const data: EventoDTO[] = await response.json()
+      const data = await response.json()
+
+      // Si es un array, es la respuesta sin paginación
+      if (Array.isArray(data)) {
+        return data.map(mapEventoDTOToEvent)
+      }
+
+      // Si tiene la estructura de Page, es respuesta paginada
+      if (data.content) {
+        return {
+          content: data.content.map(mapEventoDTOToEvent),
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+          size: data.size,
+          number: data.number,
+          first: data.first,
+          last: data.last,
+        }
+      }
+
       return data.map(mapEventoDTOToEvent)
     } catch (error) {
       console.error("Error fetching events:", error)

@@ -61,16 +61,44 @@ export const participantService = {
   },
 
   /**
-   * Obtiene los participantes de un evento específico
-   * Este es el endpoint que debes usar para cargar participantes por evento
+   * Obtiene los participantes de un evento específico con paginación
    */
-  async getByEventId(eventId: string | number): Promise<Participante[]> {
+  async getByEventId(
+    eventId: string | number,
+    page = 0,
+    size = 10,
+    sortBy = "id",
+    sortDir = "asc"
+  ): Promise<Participante[] | import("./event-service").PaginatedResponse<Participante>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/participante/evento/${eventId}`)
+      const url = size === -1
+        ? `${API_BASE_URL}/participante/evento/${eventId}?page=-1&size=-1`
+        : `${API_BASE_URL}/participante/evento/${eventId}?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`
+
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`Error al obtener participantes del evento: ${response.status}`)
       }
-      const data: ParticipanteDTO[] = await response.json()
+      const data = await response.json()
+
+      // Si es array, respuesta sin paginación
+      if (Array.isArray(data)) {
+        return data.map(mapParticipanteDTOToParticipante)
+      }
+
+      // Si tiene Page structure
+      if (data.content) {
+        return {
+          content: data.content.map(mapParticipanteDTOToParticipante),
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+          size: data.size,
+          number: data.number,
+          first: data.first,
+          last: data.last,
+        }
+      }
+
       return data.map(mapParticipanteDTOToParticipante)
     } catch (error) {
       console.error(`Error fetching participants for event ${eventId}:`, error)
@@ -90,11 +118,11 @@ export const participantService = {
         },
         body: JSON.stringify(participante),
       })
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error("Error del servidor:", errorText)
-        
+
         // Intentar parsear si es JSON
         let errorMessage = errorText
         try {
@@ -103,10 +131,10 @@ export const participantService = {
         } catch {
           // Si no es JSON, usar el texto directo
         }
-        
+
         throw new Error(`Error al crear participante: ${errorMessage}`)
       }
-      
+
       const data: ParticipanteDTO = await response.json()
       return mapParticipanteDTOToParticipante(data)
     } catch (error) {

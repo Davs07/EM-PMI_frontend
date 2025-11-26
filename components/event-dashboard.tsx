@@ -14,6 +14,7 @@ import { AdvancedSearch } from "./advanced-search"
 import { ReminderModal } from "./reminder-modal"
 import { AddAttendeeModal } from "./add-attendee-modal"
 import SendInvitationsModal from "./send-invitations-modal"
+import { Pagination } from "./ui/pagination"
 import { Participante } from "./ui/data/model"
 import { participantService } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
@@ -69,6 +70,10 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
 
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [autoRefresh, setAutoRefresh] = useState(false)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalElements, setTotalElements] = useState(0)
+  const [pageSize] = useState(20) // 20 participantes por página
 
   // Cargar evento y participantes desde la API
   useEffect(() => {
@@ -76,13 +81,14 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
       loadEventData()
       loadParticipantes()
     }
-  }, [eventId])
+  }, [eventId, currentPage])
 
   const loadEventData = async () => {
     if (!eventId) return
     try {
-      const events = await eventService.getAll()
-      const event = events.find(e => e.id === eventId)
+      const data = await eventService.getAll(-1, -1)
+      const eventsArray = Array.isArray(data) ? data : ('content' in data ? data.content : [])
+      const event = eventsArray.find(e => e.id === eventId)
       if (event) {
         setCurrentEvent(event)
       }
@@ -100,7 +106,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
     }, 30000) // 30 segundos
 
     return () => clearInterval(interval)
-  }, [autoRefresh, eventId])
+  }, [autoRefresh, eventId, currentPage])
 
   const loadParticipantes = async () => {
     if (!eventId) {
@@ -112,7 +118,20 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
       setIsLoading(true)
       setError(null)
       // Cargar participantes específicos del evento usando el nuevo endpoint
-      const participantes = await participantService.getByEventId(eventId)
+      const data = await participantService.getByEventId(eventId, currentPage, pageSize)
+
+      let participantes: Participante[] = []
+
+      // Check if paginated response
+      if ('content' in data) {
+        participantes = data.content
+        setTotalPages(data.totalPages)
+        setTotalElements(data.totalElements)
+      } else {
+        participantes = data as Participante[]
+        setTotalPages(1)
+        setTotalElements(data.length)
+      }
 
       // Transformar Participante a Attendee y cargar estado de asistencia
       const transformedAttendeesPromises = participantes.map(async (p: Participante) => {
@@ -316,7 +335,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
 
   return (
     <div className="min-h-screen bg-background/50">
-      <PMIHeader />
+      {/* <PMIHeader /> */}
 
       {showQRScanner && (
         <QRScanner
@@ -507,6 +526,19 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                   </div>
                 )}
 
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-8">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      pageSize={pageSize}
+                      totalElements={totalElements}
+                    />
+                  </div>
+                )}
+
                 <div className="flex gap-2 mt-8 flex-wrap justify-end border-t border-gray-100 pt-6">
                   <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 rounded-full border-gray-200">
                     <Upload className="h-4 w-4" />
@@ -529,7 +561,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
           ))}
         </Tabs>
       </div>
-    </div>
+    </div >
   )
 }
 
