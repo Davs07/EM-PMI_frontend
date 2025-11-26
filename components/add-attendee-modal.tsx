@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +30,10 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
   const [selectedParticipant, setSelectedParticipant] = useState<Participante | null>(null)
   const [adding, setAdding] = useState(false)
   
+  // Ref para evitar cargas duplicadas y controlar el ciclo de vida
+  const hasLoadedRef = useRef(false)
+  const isMountedRef = useRef(true)
+  
   // Rol para la asistencia (independiente del rol del participante)
   const [rolAsistencia, setRolAsistencia] = useState<RolParticipante>("ASISTENTE")
   
@@ -49,11 +53,43 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
     cuentaConCertificadoPmi: false,
   })
 
+  // Función memoizada para cargar participantes
+  const loadAllParticipants = useCallback(async () => {
+    // Evitar cargas duplicadas
+    if (hasLoadedRef.current || loading) return
+    
+    try {
+      hasLoadedRef.current = true
+      setLoading(true)
+      const participants = await participantService.getAll()
+      if (isMountedRef.current) {
+        setAllParticipants(participants)
+      }
+    } catch (error) {
+      console.error("Error al cargar participantes:", error)
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [loading])
+
   useEffect(() => {
-    if (isOpen) {
+    isMountedRef.current = true
+    
+    if (isOpen && !hasLoadedRef.current) {
       loadAllParticipants()
     }
-  }, [isOpen])
+    
+    // Reset cuando se cierra el modal
+    if (!isOpen) {
+      hasLoadedRef.current = false
+    }
+    
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [isOpen, loadAllParticipants])
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -72,18 +108,6 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
       setFilteredParticipants(filtered.slice(0, 10)) // Limitar a 10 resultados
     }
   }, [searchTerm, allParticipants, existingParticipantIds])
-
-  const loadAllParticipants = async () => {
-    try {
-      setLoading(true)
-      const participants = await participantService.getAll()
-      setAllParticipants(participants)
-    } catch (error) {
-      console.error("Error al cargar participantes:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleAddParticipant = async () => {
     if (!selectedParticipant) return

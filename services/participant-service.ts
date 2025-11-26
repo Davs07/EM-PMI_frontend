@@ -2,7 +2,11 @@ import { Participante } from "@/components/ui/data/model"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
-export interface ParticipanteDTO {
+/**
+ * DTO para participante con información de asistencia incluida
+ * Evita el problema de N+1 queries
+ */
+export interface ParticipanteConAsistenciaDTO {
   id: number
   nombres: string
   apellidoPaterno: string
@@ -17,34 +21,22 @@ export interface ParticipanteDTO {
   capituloPmi: string
   idMiembroPmi: string
   cuentaConCertificadoPmi: boolean
+  asistencia: {
+    asistio: boolean
+    horaIngreso: string | null
+    fechaRegistro: string | null
+  } | null
 }
 
 /**
- * Mapea un ParticipanteDTO del backend a un Participante del frontend
+ * Tipo para crear un nuevo participante (sin id)
  */
-function mapParticipanteDTOToParticipante(dto: ParticipanteDTO): Participante {
-  return {
-    id: dto.id,
-    nombres: dto.nombres || "",
-    apellidoPaterno: dto.apellidoPaterno || "",
-    apellidoMaterno: dto.apellidoMaterno || "",
-    dni: dto.dni || "",
-    email: dto.email || "",
-    numeroWhatsapp: dto.numeroWhatsapp || "",
-    ciudad: dto.ciudad || "",
-    rol: dto.rol || "",
-    gradoEstudio: dto.gradoEstudio || "",
-    evidenciaEstudio: dto.evidenciaEstudio || undefined,
-    capituloPmi: dto.capituloPmi || "",
-    idMiembroPmi: dto.idMiembroPmi || "",
-    cuentaConCertificadoPmi: dto.cuentaConCertificadoPmi || false,
-    asistencias: [],
-  }
-}
+export type CreateParticipanteDTO = Omit<ParticipanteConAsistenciaDTO, "id" | "asistencia">
 
 export const participantService = {
   /**
    * Obtiene todos los participantes (sin filtrar por evento)
+   * Usado para el modal de agregar asistente
    */
   async getAll(): Promise<Participante[]> {
     try {
@@ -52,8 +44,25 @@ export const participantService = {
       if (!response.ok) {
         throw new Error(`Error al obtener participantes: ${response.status}`)
       }
-      const data: ParticipanteDTO[] = await response.json()
-      return data.map(mapParticipanteDTOToParticipante)
+      const data: ParticipanteConAsistenciaDTO[] = await response.json()
+      // Mapear a Participante del modelo frontend
+      return data.map((dto) => ({
+        id: dto.id,
+        nombres: dto.nombres || "",
+        apellidoPaterno: dto.apellidoPaterno || "",
+        apellidoMaterno: dto.apellidoMaterno || "",
+        dni: dto.dni || "",
+        email: dto.email || "",
+        numeroWhatsapp: dto.numeroWhatsapp || "",
+        ciudad: dto.ciudad || "",
+        rol: dto.rol || "",
+        gradoEstudio: dto.gradoEstudio || "",
+        evidenciaEstudio: dto.evidenciaEstudio || undefined,
+        capituloPmi: dto.capituloPmi || "",
+        idMiembroPmi: dto.idMiembroPmi || "",
+        cuentaConCertificadoPmi: dto.cuentaConCertificadoPmi || false,
+        asistencias: [],
+      }))
     } catch (error) {
       console.error("Error fetching participants:", error)
       throw error
@@ -61,19 +70,18 @@ export const participantService = {
   },
 
   /**
-   * Obtiene los participantes de un evento específico
-   * Este es el endpoint que debes usar para cargar participantes por evento
+   * Obtiene los participantes de un evento con su estado de asistencia incluido
+   * Este endpoint optimizado evita el problema de N+1 queries
    */
-  async getByEventId(eventId: string | number): Promise<Participante[]> {
+  async getByEventIdWithAttendance(eventId: string | number): Promise<ParticipanteConAsistenciaDTO[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/participante/evento/${eventId}`)
+      const response = await fetch(`${API_BASE_URL}/participante/evento/${eventId}/con-asistencia`)
       if (!response.ok) {
-        throw new Error(`Error al obtener participantes del evento: ${response.status}`)
+        throw new Error(`Error al obtener participantes con asistencia: ${response.status}`)
       }
-      const data: ParticipanteDTO[] = await response.json()
-      return data.map(mapParticipanteDTOToParticipante)
+      return await response.json()
     } catch (error) {
-      console.error(`Error fetching participants for event ${eventId}:`, error)
+      console.error(`Error fetching participants with attendance for event ${eventId}:`, error)
       throw error
     }
   },
@@ -81,7 +89,7 @@ export const participantService = {
   /**
    * Crea un nuevo participante
    */
-  async create(participante: Omit<ParticipanteDTO, "id">): Promise<Participante> {
+  async create(participante: CreateParticipanteDTO): Promise<ParticipanteConAsistenciaDTO> {
     try {
       const response = await fetch(`${API_BASE_URL}/participante/crear`, {
         method: "POST",
@@ -90,12 +98,11 @@ export const participantService = {
         },
         body: JSON.stringify(participante),
       })
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error("Error del servidor:", errorText)
-        
-        // Intentar parsear si es JSON
+
         let errorMessage = errorText
         try {
           const errorJson = JSON.parse(errorText)
@@ -103,12 +110,11 @@ export const participantService = {
         } catch {
           // Si no es JSON, usar el texto directo
         }
-        
+
         throw new Error(`Error al crear participante: ${errorMessage}`)
       }
-      
-      const data: ParticipanteDTO = await response.json()
-      return mapParticipanteDTOToParticipante(data)
+
+      return await response.json()
     } catch (error) {
       console.error("Error creating participant:", error)
       throw error

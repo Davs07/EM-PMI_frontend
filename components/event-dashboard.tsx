@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import { ReminderModal } from "./reminder-modal"
 import { AddAttendeeModal } from "./add-attendee-modal"
 import SendInvitationsModal from "./send-invitations-modal"
 import { Participante } from "./ui/data/model"
-import { participantService } from "@/services/participant-service"
+import { participantService, ParticipanteConAsistenciaDTO } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
 import { eventService } from "@/services/event-service"
 import type { Event } from "@/types/event"
@@ -68,27 +68,144 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
 
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [autoRefresh, setAutoRefresh] = useState(false)
+  
+  // Ref para evitar actualizaciones de estado en componentes desmontados
+  const isMountedRef = useRef(true)
 
-  // Cargar evento y participantes desde la API
-  useEffect(() => {
-    if (eventId) {
-      loadEventData()
-      loadParticipantes()
-    }
-  }, [eventId])
-
-  const loadEventData = async () => {
+  // Función para cargar datos del evento - memoizada para evitar recreación
+  const loadEventData = useCallback(async () => {
     if (!eventId) return
     try {
-      const events = await eventService.getAll()
-      const event = events.find(e => e.id === eventId)
-      if (event) {
+      // Usar getById en lugar de getAll para evitar cargar todos los eventos
+      const event = await eventService.getById(eventId)
+      if (isMountedRef.current && event) {
         setCurrentEvent(event)
       }
     } catch (error) {
       console.error("Error cargando datos del evento:", error)
     }
-  }
+  }, [eventId])
+
+  // Función para cargar participantes - memoizada
+  // Usa el nuevo endpoint optimizado que incluye la asistencia (evita N+1 queries)
+  const loadParticipantes = useCallback(async () => {
+    if (!eventId) {
+      setError("No se ha especificado un ID de evento")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // Usar el nuevo endpoint optimizado que trae participantes CON asistencia
+      // Esto evita hacer N llamadas adicionales por cada participante
+      const participantesConAsistencia = await participantService.getByEventIdWithAttendance(eventId)
+      
+      // Verificar si el componente sigue montado antes de continuar
+      if (!isMountedRef.current) return
+      
+      // Transformar ParticipanteConAsistenciaDTO a Attendee
+      // Ya no necesitamos hacer llamadas adicionales por cada participante
+      const transformedAttendees = participantesConAsistencia.map((p: ParticipanteConAsistenciaDTO) => {
+        // Determinar estado de asistencia desde los datos ya incluidos
+        const attendanceStatus: "present" | "absent" = p.asistencia?.asistio ? "present" : "absent"
+        
+        // Formatear fecha de registro
+        let registrationDate = new Date().toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+        
+        if (p.asistencia?.fechaRegistro) {
+          registrationDate = new Date(p.asistencia.fechaRegistro).toLocaleDateString("es-ES", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        }
+
+        // Crear objeto Participante para compatibilidad con componentes existentes
+        const participante: Participante = {
+          id: p.id,
+          nombres: p.nombres || "",
+          apellidoPaterno: p.apellidoPaterno || "",
+          apellidoMaterno: p.apellidoMaterno || "",
+          dni: p.dni || "",
+          email: p.email || "",
+          numeroWhatsapp: p.numeroWhatsapp || "",
+          ciudad: p.ciudad || "",
+          rol: p.rol || "",
+          gradoEstudio: p.gradoEstudio || "",
+          evidenciaEstudio: p.evidenciaEstudio || undefined,
+          capituloPmi: p.capituloPmi || "",
+          idMiembroPmi: p.idMiembroPmi || "",
+          cuentaConCertificadoPmi: p.cuentaConCertificadoPmi || false,
+          asistencias: [],
+        }
+
+        return {
+          id: p.id,
+          dni: p.dni || "",
+          fullName: `${p.apellidoPaterno || ""} ${p.apellidoMaterno || ""} ${p.nombres || ""}`.trim(),
+          email: p.email || "",
+          phone: p.numeroWhatsapp || "",
+          registrationDate: registrationDate,
+          city: p.ciudad || "",
+          role: p.rol || "",
+          modality: determineModality(participante),
+          studyProgram: p.gradoEstudio || null,
+          educationalInstitution: null,
+          studentCardLink: p.evidenciaEstudio || null,
+          pmiChapter: p.capituloPmi || null,
+          pmiMemberId: p.idMiembroPmi || null,
+          pmiCertification: p.cuentaConCertificadoPmi || false,
+          paymentVoucher: "Boleta",
+          ruc: null,
+          paymentVoucherLink: "",
+          receiveEventInfo: true,
+          authorizeDataUsage: true,
+          status: attendanceStatus,
+          type: determineType(participante),
+          participante: participante,
+        } as Attendee
+      })
+      
+      // Solo actualizar si el componente sigue montado
+      if (isMountedRef.current) {
+        setAttendees(transformedAttendees)
+      }
+    } catch (err) {
+      console.error("Error al cargar participantes:", err)
+      if (isMountedRef.current) {
+        setError("No se pudieron cargar los participantes. Verifica que el servidor esté en ejecución.")
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false)
+      }
+    }
+  }, [eventId])
+
+  // Cargar evento y participantes desde la API - solo cuando cambia eventId
+  useEffect(() => {
+    isMountedRef.current = true
+    
+    if (eventId) {
+      loadEventData()
+      loadParticipantes()
+    }
+    
+    // Cleanup: marcar como desmontado para evitar actualizaciones de estado
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [eventId, loadEventData, loadParticipantes])
 
   // Auto-refresco opcional cada 30 segundos
   useEffect(() => {
@@ -99,87 +216,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
     }, 30000) // 30 segundos
 
     return () => clearInterval(interval)
-  }, [autoRefresh, eventId])
-
-  const loadParticipantes = async () => {
-    if (!eventId) {
-      setError("No se ha especificado un ID de evento")
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      setError(null)
-      // Cargar participantes específicos del evento usando el nuevo endpoint
-      const participantes = await participantService.getByEventId(eventId)
-      
-      // Transformar Participante a Attendee y cargar estado de asistencia
-      const transformedAttendeesPromises = participantes.map(async (p: Participante) => {
-        let attendanceStatus: "present" | "absent" = "absent"
-        let registrationDate = new Date().toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit"
-        })
-        
-        // Intentar obtener el estado de asistencia desde el backend
-        try {
-          const asistencia = await attendanceService.getByParticipantAndEvent(p.id, Number(eventId))
-          attendanceStatus = asistencia.asistio ? "present" : "absent"
-          
-          // Usar la fecha de registro real de la asistencia
-          if (asistencia.fechaRegistro) {
-            registrationDate = new Date(asistencia.fechaRegistro).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit"
-            })
-          }
-        } catch (error) {
-          // Si no existe el registro de asistencia, se mantiene como ausente por defecto
-          console.warn(`No se encontró registro de asistencia para participante ${p.id} en evento ${eventId}`)
-        }
-
-        return {
-          id: p.id,
-          dni: p.dni,
-          fullName: `${p.apellidoPaterno} ${p.apellidoMaterno} ${p.nombres}`.trim(),
-          email: p.email,
-          phone: p.numeroWhatsapp,
-          registrationDate: registrationDate, // Fecha real desde la asistencia
-          city: p.ciudad,
-          role: p.rol,
-          modality: determineModality(p),
-          studyProgram: p.gradoEstudio || null,
-          educationalInstitution: null,
-          studentCardLink: p.evidenciaEstudio || null,
-          pmiChapter: p.capituloPmi || null,
-          pmiMemberId: p.idMiembroPmi || null,
-          pmiCertification: p.cuentaConCertificadoPmi,
-          paymentVoucher: "Boleta",
-          ruc: null,
-          paymentVoucherLink: "",
-          receiveEventInfo: true,
-          authorizeDataUsage: true,
-          status: attendanceStatus, // Estado real desde el backend
-          type: determineType(p),
-          participante: p,
-        } as Attendee
-      })
-      
-      const transformedAttendees = await Promise.all(transformedAttendeesPromises)
-      setAttendees(transformedAttendees)
-    } catch (err) {
-      console.error("Error al cargar participantes:", err)
-      setError("No se pudieron cargar los participantes. Verifica que el servidor esté en ejecución.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [autoRefresh, eventId, loadParticipantes])
 
   // Función para determinar el tipo de participante basado en su rol
   const determineType = (participante: Participante): string => {

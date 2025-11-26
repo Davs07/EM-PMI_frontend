@@ -53,7 +53,6 @@ export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails }
               <th className="px-6 py-3 text-left text-sm font-semibold">DNI</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Apellidos y Nombres</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Correo Electrónico</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold">Marca Temporal</th>
               <th className="px-6 py-3 text-center text-sm font-semibold">Asistencia</th>
               <th className="px-6 py-3 text-center text-sm font-semibold">Acciones</th>
             </tr>
@@ -76,7 +75,6 @@ export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails }
                   <td className="px-6 py-4 text-sm font-medium">{attendee.dni}</td>
                   <td className="px-6 py-4 text-sm font-medium">{attendee.fullName}</td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">{attendee.email}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{attendee.registrationDate}</td>
                   <td className="px-6 py-4 text-center">
                     <button
                       onClick={() => onToggleAttendance(attendee.id)}
