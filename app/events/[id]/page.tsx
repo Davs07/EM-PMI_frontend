@@ -10,7 +10,6 @@ import { eventService } from "@/services/event-service"
 import type { Event } from "@/types/event"
 import { cn } from "@/lib/utils"
 import { Header } from "@/components/layout/header"
-import { Footer } from "@/components/layout/footer"
 
 export default function EventPage() {
     const params = useParams()
@@ -175,8 +174,6 @@ export default function EventPage() {
                 {/* Main Content: Dashboard */}
                 <EventDashboard eventId={event.id} />
             </main >
-
-            <Footer />
 
             <EventFormModal
                 isOpen={showEditModal}
