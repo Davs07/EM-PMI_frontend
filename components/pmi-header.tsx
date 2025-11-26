@@ -8,7 +8,7 @@ export function PMIHeader() {
       <div className="container mx-auto px-4 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Image
-            src={"PMI_logo.png"}
+            src={"/PMI_logo.png"}
             alt="Logo"
             height={"96"}
             width={"96"}

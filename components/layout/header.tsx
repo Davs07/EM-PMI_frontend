@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
+import { PMIHeader } from "../pmi-header"
+import Image from "next/image"
 
 export function Header() {
     return (
@@ -11,14 +13,15 @@ export function Header() {
                 {/* Logo */}
                 <div className="flex items-center gap-2">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
-                            P
-                        </div>
-                        <span className="text-xl font-extrabold tracking-tight text-foreground">
-                            PMI<span className="text-primary">Events</span>
-                        </span>
+                        <Image
+                            src={"/logo.svg"}
+                            alt="Logo"
+                            height={"150"}
+                            width={"150"}
+                        />
                     </Link>
                 </div>
+
 
 
                 {/* Auth Buttons */}
