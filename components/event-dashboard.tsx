@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Upload, Download, QrCode, FileText, RefreshCw, Mail } from "lucide-react"
 import { AttendanceTable } from "./attendance-table"
-import { PMIHeader } from "./pmi-header"
 import { QRScanner } from "./qr-scanner"
 import { ImportDialog } from "./import-dialog"
 import { AttendeeDetailsModal } from "./attendee-details-modal"
@@ -19,6 +18,7 @@ import { participantService, ParticipanteConAsistenciaDTO } from "@/services/par
 import { attendanceService } from "@/services/attendance-service"
 import { eventService } from "@/services/event-service"
 import type { Event } from "@/types/event"
+import { useAuth } from "@/context/AuthContext"
 
 interface Attendee {
   id: number
@@ -51,6 +51,7 @@ interface EventDashboardProps {
 }
 
 export function EventDashboard({ eventId }: EventDashboardProps) {
+  const { isGuest } = useAuth()
   const [activeTab, setActiveTab] = useState("asistentes")
   const [searchTerm, setSearchTerm] = useState("")
   const [searchField, setSearchField] = useState("nombre")
@@ -352,8 +353,6 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
 
   return (
     <div className="min-h-screen bg-background">
-      <PMIHeader />
-
       {showQRScanner && (
         <QRScanner
           onClose={() => setShowQRScanner(false)}
@@ -510,7 +509,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                   )}
                 </div>
 
-                {activeTab === "asistentes" && (
+                {activeTab === "asistentes" && !isGuest && (
                   <div className="mb-6 flex gap-2 flex-wrap">
                     <Button onClick={() => setShowQRScanner(true)} className="gap-2 bg-orange-500 hover:bg-orange-600">
                       <QrCode className="h-4 w-4" />
@@ -549,26 +548,29 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                     attendees={filteredAttendees as any}
                     onToggleAttendance={toggleAttendance}
                     onViewDetails={handleViewDetails as any}
+                    isGuest={isGuest}
                   />
                 )}
 
-                <div className="flex gap-2 mt-6 flex-wrap">
-                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 bg-transparent">
-                    <Upload className="h-4 w-4" />
-                    Importar
-                  </Button>
-                  <Button onClick={handleExportCSV} className="gap-2 bg-orange-500 hover:bg-orange-600">
-                    <Download className="h-4 w-4" />
-                    Exportar CSV
-                  </Button>
-                  <Button onClick={handleExportPDF} variant="outline" className="gap-2 bg-transparent">
-                    <FileText className="h-4 w-4" />
-                    Exportar Reporte
-                  </Button>
-                  <Button onClick={() => setShowReminderModal(true)} variant="outline" className="gap-2 bg-transparent">
-                    Crear Recordatorio
-                  </Button>
-                </div>
+                {!isGuest && (
+                  <div className="flex gap-2 mt-6 flex-wrap">
+                    <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 bg-transparent">
+                      <Upload className="h-4 w-4" />
+                      Importar
+                    </Button>
+                    <Button onClick={handleExportCSV} className="gap-2 bg-orange-500 hover:bg-orange-600">
+                      <Download className="h-4 w-4" />
+                      Exportar CSV
+                    </Button>
+                    <Button onClick={handleExportPDF} variant="outline" className="gap-2 bg-transparent">
+                      <FileText className="h-4 w-4" />
+                      Exportar Reporte
+                    </Button>
+                    <Button onClick={() => setShowReminderModal(true)} variant="outline" className="gap-2 bg-transparent">
+                      Crear Recordatorio
+                    </Button>
+                  </div>
+                )}
               </Card>
             </TabsContent>
           ))}

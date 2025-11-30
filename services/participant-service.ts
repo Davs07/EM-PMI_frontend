@@ -1,6 +1,21 @@
 import { Participante } from "@/components/ui/data/model"
+import { tokenUtils } from "./auth-service"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
+
+/**
+ * Helper para obtener headers con autenticación
+ */
+function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  }
+  const token = tokenUtils.getToken()
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+  return headers
+}
 
 /**
  * DTO para participante con información de asistencia incluida
@@ -87,22 +102,21 @@ export const participantService = {
   },
 
   /**
-   * Crea un nuevo participante
+   * Crea un nuevo participante (requiere autenticación ADMIN)
    */
   async create(participante: CreateParticipanteDTO): Promise<ParticipanteConAsistenciaDTO> {
     try {
       const response = await fetch(`${API_BASE_URL}/participante/crear`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(participante),
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para crear participantes.")
+        
         const errorText = await response.text()
-        console.error("Error del servidor:", errorText)
-
         let errorMessage = errorText
         try {
           const errorJson = JSON.parse(errorText)
@@ -122,14 +136,17 @@ export const participantService = {
   },
 
   /**
-   * Elimina un participante
+   * Elimina un participante (requiere autenticación ADMIN)
    */
   async delete(id: number): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/participante/eliminar/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       })
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para eliminar participantes.")
         throw new Error(`Error al eliminar participante: ${response.status}`)
       }
     } catch (error) {

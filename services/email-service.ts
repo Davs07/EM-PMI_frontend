@@ -1,4 +1,18 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+import { tokenUtils } from "./auth-service"
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
+
+/**
+ * Helper para obtener headers con autenticación (sin Content-Type para FormData)
+ */
+function getAuthHeadersForFormData(): HeadersInit {
+  const headers: HeadersInit = {}
+  const token = tokenUtils.getToken()
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+  return headers
+}
 
 export interface RecordatorioRequest {
   eventoId: number
@@ -41,6 +55,7 @@ export interface EnvioRecordatoriosResponse {
 export const emailService = {
   /**
    * Envía recordatorios a todos los participantes del evento con archivo .ics para calendario
+   * Requiere autenticación ADMIN
    */
   async enviarRecordatorio(request: RecordatorioRequest): Promise<EnvioRecordatoriosResponse> {
     try {
@@ -60,10 +75,13 @@ export const emailService = {
 
       const response = await fetch(`${API_BASE_URL}/email/recordatorio`, {
         method: "POST",
+        headers: getAuthHeadersForFormData(),
         body: formData,
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para enviar recordatorios.")
         throw new Error(`Error al enviar recordatorio: ${response.status}`)
       }
 
@@ -76,13 +94,13 @@ export const emailService = {
 
   /**
    * Envía invitaciones virtuales con link de Google Meet
+   * Requiere autenticación ADMIN
    */
   async enviarInvitacionVirtual(
     eventoId: number,
     invitacion: InvitacionVirtual
   ): Promise<string> {
     try {
-      // Usar FormData para enviar los datos
       const formData = new FormData()
       formData.append('eventoId', eventoId.toString())
       formData.append('asunto', invitacion.asunto)
@@ -97,10 +115,13 @@ export const emailService = {
 
       const response = await fetch(`${API_BASE_URL}/email/virtual`, {
         method: "POST",
+        headers: getAuthHeadersForFormData(),
         body: formData,
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para enviar invitaciones.")
         const errorText = await response.text()
         throw new Error(errorText || `Error al enviar invitación virtual: ${response.status}`)
       }
@@ -114,13 +135,13 @@ export const emailService = {
 
   /**
    * Envía invitaciones presenciales con código QR de entrada
+   * Requiere autenticación ADMIN
    */
   async enviarInvitacionPresencial(
     eventoId: number,
     invitacion: InvitacionPresencial
   ): Promise<string> {
     try {
-      // Usar FormData para enviar los datos
       const formData = new FormData()
       formData.append('eventoId', eventoId.toString())
       formData.append('asunto', invitacion.asunto)
@@ -134,10 +155,13 @@ export const emailService = {
 
       const response = await fetch(`${API_BASE_URL}/email/presencial`, {
         method: "POST",
+        headers: getAuthHeadersForFormData(),
         body: formData,
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para enviar invitaciones.")
         const errorText = await response.text()
         throw new Error(errorText || `Error al enviar invitación presencial: ${response.status}`)
       }
@@ -151,13 +175,13 @@ export const emailService = {
 
   /**
    * Envía certificados de participación a todos los asistentes del evento
+   * Requiere autenticación ADMIN
    */
   async enviarCertificados(
     eventoId: number,
     mensaje: string
   ): Promise<string> {
     try {
-      // Convertir saltos de línea a <br> para mantener el formato de mensaje
       const mensajeConSaltosDeLinea = mensaje.replace(/\n/g, '<br>')
       
       const formData = new FormData()
@@ -165,10 +189,13 @@ export const emailService = {
 
       const response = await fetch(`${API_BASE_URL}/certificados/evento/${eventoId}/enviar`, {
         method: "POST",
+        headers: getAuthHeadersForFormData(),
         body: formData,
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para enviar certificados.")
         const errorText = await response.text()
         throw new Error(errorText || `Error al enviar certificados: ${response.status}`)
       }

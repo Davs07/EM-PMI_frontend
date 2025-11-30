@@ -10,9 +10,10 @@ interface EventCardProps {
   onEdit: (event: Event) => void
   onDelete: (eventId: string) => void
   onClick: (event: Event) => void
+  isGuest?: boolean
 }
 
-export function EventCard({ event, onEdit, onDelete, onClick }: EventCardProps) {
+export function EventCard({ event, onEdit, onDelete, onClick, isGuest = false }: EventCardProps) {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "PRESENCIAL":
@@ -83,32 +84,34 @@ export function EventCard({ event, onEdit, onDelete, onClick }: EventCardProps) 
         <p className="text-sm text-gray-600 line-clamp-2">{event.descripcion}</p>
         {event.ubicacion && <p className="text-xs text-gray-500 mt-2">📍 {event.ubicacion}</p>}
       </CardContent>
-      <div className="px-6 pb-4 pt-2 border-t flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 text-purple-700 border-purple-200 hover:bg-purple-50 bg-transparent"
-          onClick={(e) => {
-            e.stopPropagation()
-            onEdit(event)
-          }}
-        >
-          <Edit2 className="w-4 h-4 mr-1" />
-          Editar
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 text-orange-600 border-orange-200 hover:bg-orange-50 bg-transparent"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(event.id)
-          }}
-        >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Eliminar
-        </Button>
-      </div>
+      {!isGuest && (
+        <div className="px-6 pb-4 pt-2 border-t flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 text-purple-700 border-purple-200 hover:bg-purple-50 bg-transparent"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(event)
+            }}
+          >
+            <Edit2 className="w-4 h-4 mr-1" />
+            Editar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 text-orange-600 border-orange-200 hover:bg-orange-50 bg-transparent"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(event.id)
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Eliminar
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }

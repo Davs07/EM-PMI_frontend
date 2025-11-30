@@ -1,4 +1,20 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+import { tokenUtils } from "./auth-service"
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
+
+/**
+ * Helper para obtener headers con autenticación
+ */
+function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  }
+  const token = tokenUtils.getToken()
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+  return headers
+}
 
 export interface AsistenciaDTO {
   id: number
@@ -30,7 +46,7 @@ export const attendanceService = {
   },
 
   /**
-   * Actualiza el estado de asistencia (asistio: true/false)
+   * Actualiza el estado de asistencia (asistio: true/false) - requiere ADMIN
    * Si se marca como asistido, automáticamente registra la hora de ingreso
    */
   async updateAttendanceStatus(
@@ -43,14 +59,14 @@ export const attendanceService = {
         `${API_BASE_URL}/asistencias/participante/${participanteId}/evento/${eventoId}/estado`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ asistio }),
         }
       )
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para actualizar asistencia.")
         const errorText = await response.text()
         throw new Error(`Error al actualizar asistencia: ${response.status} - ${errorText}`)
       }
@@ -84,7 +100,7 @@ export const attendanceService = {
   },
 
   /**
-   * Registra asistencia mediante código QR escaneado desde una imagen
+   * Registra asistencia mediante código QR escaneado desde una imagen - requiere ADMIN
    * El backend decodifica el QR y marca la asistencia como presente
    */
   async registerAttendanceByQR(imageFile: File): Promise<AsistenciaDTO> {
@@ -92,19 +108,28 @@ export const attendanceService = {
       const formData = new FormData()
       formData.append("imagen", imageFile)
 
+      // Para FormData no incluimos Content-Type, el navegador lo añade automáticamente
+      const headers: HeadersInit = {}
+      const token = tokenUtils.getToken()
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
       const response = await fetch(`${API_BASE_URL}/asistencias/validar-qr-imagen`, {
         method: "POST",
+        headers,
         body: formData,
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para registrar asistencia.")
+        
         const errorText = await response.text()
         
         if (response.status === 409) {
-          // HTTP 409 Conflict - La asistencia ya fue registrada
           throw new Error("La asistencia ya fue registrada previamente")
         } else if (response.status === 404) {
-          // HTTP 404 Not Found - No se encontró el código QR
           throw new Error("No se encontró una asistencia asociada a este código QR")
         } else {
           throw new Error(`Error al validar QR: ${errorText}`)
@@ -119,31 +144,30 @@ export const attendanceService = {
   },
 
   /**
-   * Crea un nuevo registro de asistencia para un participante en un evento
+   * Crea un nuevo registro de asistencia para un participante en un evento - requiere ADMIN
    */
   async create(participanteId: number, eventoId: number, rol: string = "ASISTENTE"): Promise<AsistenciaDTO> {
     try {
       const payload = {
         participanteId,
         eventoId,
-        rol: rol, // Usar el rol proporcionado o ASISTENTE por defecto
-        asistio: false, // Por defecto se crea como ausente
+        rol: rol,
+        asistio: false,
       }
-      console.log("Creating attendance with payload:", payload)
 
       const response = await fetch(`${API_BASE_URL}/asistencias/crear`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para crear asistencias.")
+        
         const errorText = await response.text()
         
         if (response.status === 409) {
-          // HTTP 409 Conflict - Ya existe la asistencia
           throw new Error("El participante ya está registrado en este evento")
         }
         

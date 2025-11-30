@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { UserMenu } from "./auth/user-menu"
 
 export function PMIHeader() {
   return (
@@ -20,6 +21,9 @@ export function PMIHeader() {
               <span className="text-xl text-white">Institute</span>
           </div>
         </div>
+        
+        {/* Menú de usuario */}
+        <UserMenu />
       </div>
     </header>
   )

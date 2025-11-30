@@ -20,9 +20,10 @@ interface AttendanceTableProps {
   attendees: Attendee[]
   onToggleAttendance: (id: number) => void
   onViewDetails: (attendee: Attendee) => void
+  isGuest?: boolean
 }
 
-export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails }: AttendanceTableProps) {
+export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails, isGuest = false }: AttendanceTableProps) {
   const presentCount = attendees.filter((a) => a.status === "present").length
   const absentCount = attendees.filter((a) => a.status === "absent").length
   const attendanceRate = attendees.length > 0 ? Math.round((presentCount / attendees.length) * 100) : 0
@@ -54,13 +55,13 @@ export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails }
               <th className="px-6 py-3 text-left text-sm font-semibold">Apellidos y Nombres</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Correo Electrónico</th>
               <th className="px-6 py-3 text-center text-sm font-semibold">Asistencia</th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">Acciones</th>
+              {!isGuest && <th className="px-6 py-3 text-center text-sm font-semibold">Acciones</th>}
             </tr>
           </thead>
           <tbody>
             {attendees.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                <td colSpan={isGuest ? 4 : 5} className="px-6 py-8 text-center text-muted-foreground">
                   No hay asistentes que coincidan con los filtros
                 </td>
               </tr>
@@ -76,29 +77,41 @@ export function AttendanceTable({ attendees, onToggleAttendance, onViewDetails }
                   <td className="px-6 py-4 text-sm font-medium">{attendee.fullName}</td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">{attendee.email}</td>
                   <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => onToggleAttendance(attendee.id)}
-                      className="inline-flex items-center justify-center transition-transform hover:scale-110"
-                      title={attendee.status === "present" ? "Marcar como ausente" : "Marcar como presente"}
-                    >
-                      {attendee.status === "present" ? (
-                        <CheckCircle2 className="h-6 w-6 text-green-600" />
-                      ) : (
-                        <Circle className="h-6 w-6 text-gray-300" />
-                      )}
-                    </button>
+                    {isGuest ? (
+                      <span className="inline-flex items-center justify-center">
+                        {attendee.status === "present" ? (
+                          <CheckCircle2 className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <Circle className="h-6 w-6 text-gray-300" />
+                        )}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => onToggleAttendance(attendee.id)}
+                        className="inline-flex items-center justify-center transition-transform hover:scale-110"
+                        title={attendee.status === "present" ? "Marcar como ausente" : "Marcar como presente"}
+                      >
+                        {attendee.status === "present" ? (
+                          <CheckCircle2 className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <Circle className="h-6 w-6 text-gray-300" />
+                        )}
+                      </button>
+                    )}
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <Button
-                      onClick={() => onViewDetails(attendee)}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 text-orange-500 border-orange-500 hover:bg-orange-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Detalles
-                    </Button>
-                  </td>
+                  {!isGuest && (
+                    <td className="px-6 py-4 text-center">
+                      <Button
+                        onClick={() => onViewDetails(attendee)}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 text-orange-500 border-orange-500 hover:bg-orange-50"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Detalles
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}

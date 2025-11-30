@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { EventsGallery } from "./events-gallery"
 import { EventFormModal } from "./event-form-modal"
 import { EventDetailView } from "./event-detail-view"
+import { PMIHeader } from "./pmi-header"
 import type { Event } from "@/types/event"
 import { eventService } from "@/services/event-service"
 
@@ -113,6 +114,8 @@ export function EventsManager() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PMIHeader />
+      
       {view === "gallery" ? (
         <div className="container mx-auto px-4 py-8">
           <EventsGallery

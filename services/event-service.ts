@@ -1,6 +1,21 @@
 import type { Event } from "@/types/event"
+import { tokenUtils } from "./auth-service"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
+
+/**
+ * Helper para obtener headers con autenticación
+ */
+function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  }
+  const token = tokenUtils.getToken()
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+  return headers
+}
 
 export interface EventoDTO {
   id: number
@@ -120,19 +135,19 @@ export const eventService = {
   },
 
   /**
-   * Crea un nuevo evento
+   * Crea un nuevo evento (requiere autenticación ADMIN)
    */
   async create(event: Omit<Event, "id">): Promise<Event> {
     try {
       const payload = mapEventToBackend(event)
       const response = await fetch(`${API_BASE_URL}/eventos/crear`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para crear eventos.")
         throw new Error(`Error al crear evento: ${response.status}`)
       }
       const data: EventoDTO = await response.json()
@@ -144,19 +159,19 @@ export const eventService = {
   },
 
   /**
-   * Actualiza un evento existente
+   * Actualiza un evento existente (requiere autenticación ADMIN)
    */
   async update(id: string, event: Event): Promise<Event> {
     try {
       const payload = mapEventToBackend(event)
       const response = await fetch(`${API_BASE_URL}/eventos/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para actualizar eventos.")
         throw new Error(`Error al actualizar evento: ${response.status}`)
       }
       const data: EventoDTO = await response.json()
@@ -168,14 +183,17 @@ export const eventService = {
   },
 
   /**
-   * Elimina un evento
+   * Elimina un evento (requiere autenticación ADMIN)
    */
   async delete(id: string): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/eventos/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       })
       if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para eliminar eventos.")
         throw new Error(`Error al eliminar evento: ${response.status}`)
       }
     } catch (error) {

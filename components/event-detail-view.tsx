@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Calendar, MapPin, Users } from "lucide-react"
 import type { Event } from "@/types/event"
 import { EventDashboard } from "./event-dashboard"
+import { useAuth } from "@/context/AuthContext"
 
 interface EventDetailViewProps {
   event: Event
@@ -12,6 +13,8 @@ interface EventDetailViewProps {
 }
 
 export function EventDetailView({ event, onBack, onEdit }: EventDetailViewProps) {
+  const { isGuest } = useAuth()
+  
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("es-PE", {
       day: "2-digit",
@@ -57,13 +60,15 @@ export function EventDetailView({ event, onBack, onEdit }: EventDetailViewProps)
           <ArrowLeft className="w-4 h-4 mr-2" />
           Volver
         </Button>
-        <Button
-          size="sm"
-          onClick={() => onEdit(event)}
-          className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          Editar Evento
-        </Button>
+        {!isGuest && (
+          <Button
+            size="sm"
+            onClick={() => onEdit(event)}
+            className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            Editar Evento
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
