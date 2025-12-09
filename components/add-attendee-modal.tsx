@@ -138,6 +138,11 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
       return
     }
 
+// Validar formato de email básico
+if(!newParticipant.email.includes("@")){
+  alert("Por favor ingresa un email válido")
+}
+
     try {
       setAdding(true)
       
@@ -363,7 +368,7 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               <Input
                 id="nombres"
                 value={newParticipant.nombres}
-                onChange={(e) => setNewParticipant({ ...newParticipant, nombres: e.target.value })}
+                onChange={(e) => setNewParticipant({ ...newParticipant, nombres: e.target.value.toUpperCase() })}
                 placeholder="Juan Carlos"
               />
             </div>
@@ -373,7 +378,7 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               <Input
                 id="apellidoPaterno"
                 value={newParticipant.apellidoPaterno}
-                onChange={(e) => setNewParticipant({ ...newParticipant, apellidoPaterno: e.target.value })}
+                onChange={(e) => setNewParticipant({ ...newParticipant, apellidoPaterno: e.target.value.toUpperCase() })}
                 placeholder="Pérez"
               />
             </div>
@@ -383,7 +388,7 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               <Input
                 id="apellidoMaterno"
                 value={newParticipant.apellidoMaterno}
-                onChange={(e) => setNewParticipant({ ...newParticipant, apellidoMaterno: e.target.value })}
+                onChange={(e) => setNewParticipant({ ...newParticipant, apellidoMaterno: e.target.value.toUpperCase() })}
                 placeholder="García"
               />
             </div>
@@ -393,7 +398,10 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               <Input
                 id="dni"
                 value={newParticipant.dni}
-                onChange={(e) => setNewParticipant({ ...newParticipant, dni: e.target.value })}
+                onChange={(e) => {
+                  const onlyNumbers = e.target.value.replace(/\D/g, "");
+                  setNewParticipant({ ...newParticipant, dni: onlyNumbers });
+                }}
                 placeholder="12345678"
                 maxLength={8}
               />
@@ -415,8 +423,12 @@ export function AddAttendeeModal({ isOpen, onClose, eventId, onSuccess, existing
               <Input
                 id="numeroWhatsapp"
                 value={newParticipant.numeroWhatsapp}
-                onChange={(e) => setNewParticipant({ ...newParticipant, numeroWhatsapp: e.target.value })}
+                onChange={(e) =>{
+                  const onlyNumbers = e.target.value.replace(/[^\d+]/g, "");
+                  setNewParticipant({ ...newParticipant, numeroWhatsapp: onlyNumbers })
+                }}
                 placeholder="+51 999 999 999"
+              
               />
             </div>
 
