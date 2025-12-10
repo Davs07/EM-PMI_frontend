@@ -48,6 +48,24 @@ export interface ParticipanteConAsistenciaDTO {
  */
 export type CreateParticipanteDTO = Omit<ParticipanteConAsistenciaDTO, "id" | "asistencia">
 
+/**
+ * DTO para ponentes con información de asistencia
+ * Corresponde al endpoint /participante/evento/{eventoId}/ponentes
+ */
+export interface PonenteConAsistenciaDTO {
+  id: number
+  nombres: string
+  apellidoPaterno: string
+  apellidoMaterno: string
+  dni: string
+  email: string
+  telefono: string
+  asistencia: {
+    asistio: boolean
+    horaIngreso: string | null
+  } | null
+}
+
 export const participantService = {
   /**
    * Obtiene todos los participantes (sin filtrar por evento)
@@ -97,6 +115,23 @@ export const participantService = {
       return await response.json()
     } catch (error) {
       console.error(`Error fetching participants with attendance for event ${eventId}:`, error)
+      throw error
+    }
+  },
+
+  /**
+   * Obtiene los ponentes de un evento con su estado de asistencia
+   * Endpoint: /participante/evento/{eventoId}/ponentes
+   */
+  async getPonentesByEventId(eventId: string | number): Promise<PonenteConAsistenciaDTO[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/participante/evento/${eventId}/ponentes`)
+      if (!response.ok) {
+        throw new Error(`Error al obtener ponentes: ${response.status}`)
+      }
+      return await response.json()
+    } catch (error) {
+      console.error(`Error fetching ponentes for event ${eventId}:`, error)
       throw error
     }
   },

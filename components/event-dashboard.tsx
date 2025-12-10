@@ -14,7 +14,7 @@ import { ReminderModal } from "./reminder-modal"
 import { AddAttendeeModal } from "./add-attendee-modal"
 import SendInvitationsModal from "./send-invitations-modal"
 import { Participante } from "./ui/data/model"
-import { participantService, ParticipanteConAsistenciaDTO } from "@/services/participant-service"
+import { participantService, ParticipanteConAsistenciaDTO, PonenteConAsistenciaDTO } from "@/services/participant-service"
 import { attendanceService } from "@/services/attendance-service"
 import { eventService } from "@/services/event-service"
 import type { Event } from "@/types/event"
@@ -68,6 +68,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null)
 
   const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [ponentes, setPonentes] = useState<Attendee[]>([])
   const [autoRefresh, setAutoRefresh] = useState(false)
   
   // Ref para evitar actualizaciones de estado en componentes desmontados
@@ -172,7 +173,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
           receiveEventInfo: true,
           authorizeDataUsage: true,
           status: attendanceStatus,
-          type: determineType(participante),
+          type: "asistentes",
           participante: participante,
         } as Attendee
       })
@@ -193,20 +194,104 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
     }
   }, [eventId])
 
-  // Cargar evento y participantes desde la API - solo cuando cambia eventId
+  // Función para cargar ponentes desde el endpoint específico
+  const loadPonentes = useCallback(async () => {
+    if (!eventId) return
+
+    try {
+      const ponentesData = await participantService.getPonentesByEventId(eventId)
+      
+      if (!isMountedRef.current) return
+      
+      // Transformar PonenteConAsistenciaDTO a Attendee
+      const transformedPonentes = ponentesData.map((p: PonenteConAsistenciaDTO) => {
+        const attendanceStatus: "present" | "absent" = p.asistencia?.asistio ? "present" : "absent"
+        
+        let registrationDate = new Date().toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+        
+        if (p.asistencia?.horaIngreso) {
+          registrationDate = new Date(p.asistencia.horaIngreso).toLocaleDateString("es-ES", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        }
+
+        const participante: Participante = {
+          id: p.id,
+          nombres: p.nombres || "",
+          apellidoPaterno: p.apellidoPaterno || "",
+          apellidoMaterno: p.apellidoMaterno || "",
+          dni: p.dni || "",
+          email: p.email || "",
+          numeroWhatsapp: p.telefono || "",
+          ciudad: "",
+          rol: "Ponente",
+          gradoEstudio: "",
+          capituloPmi: "",
+          idMiembroPmi: "",
+          cuentaConCertificadoPmi: false,
+          asistencias: [],
+        }
+
+        return {
+          id: p.id,
+          dni: p.dni || "",
+          fullName: `${p.apellidoPaterno || ""} ${p.apellidoMaterno || ""} ${p.nombres || ""}`.trim(),
+          email: p.email || "",
+          phone: p.telefono || "",
+          registrationDate: registrationDate,
+          city: "",
+          role: "Ponente",
+          modality: "Presencial",
+          studyProgram: null,
+          educationalInstitution: null,
+          studentCardLink: null,
+          pmiChapter: null,
+          pmiMemberId: null,
+          pmiCertification: false,
+          paymentVoucher: "Boleta",
+          ruc: null,
+          paymentVoucherLink: "",
+          receiveEventInfo: true,
+          authorizeDataUsage: true,
+          status: attendanceStatus,
+          type: "ponentes",
+          participante: participante,
+        } as Attendee
+      })
+      
+      if (isMountedRef.current) {
+        setPonentes(transformedPonentes)
+      }
+    } catch (err) {
+      console.error("Error al cargar ponentes:", err)
+    }
+  }, [eventId])
+
+  // Cargar evento, participantes y ponentes desde la API - solo cuando cambia eventId
   useEffect(() => {
     isMountedRef.current = true
     
     if (eventId) {
       loadEventData()
       loadParticipantes()
+      loadPonentes()
     }
     
     // Cleanup: marcar como desmontado para evitar actualizaciones de estado
     return () => {
       isMountedRef.current = false
     }
-  }, [eventId, loadEventData, loadParticipantes])
+  }, [eventId, loadEventData, loadParticipantes, loadPonentes])
 
   // Auto-refresco opcional cada 30 segundos
   useEffect(() => {
@@ -214,17 +299,11 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
 
     const interval = setInterval(() => {
       loadParticipantes()
+      loadPonentes()
     }, 30000) // 30 segundos
 
     return () => clearInterval(interval)
-  }, [autoRefresh, eventId, loadParticipantes])
-
-  // Función para determinar el tipo de participante basado en su rol
-  const determineType = (participante: Participante): string => {
-    const rol = participante.rol?.toLowerCase() || ""
-    if (rol.includes("ponente") || rol.includes("speaker") || rol.includes("expositor")) return "ponentes"
-    return "asistentes" // Por defecto asistentes (incluye presencial, virtual e híbrido)
-  }
+  }, [autoRefresh, eventId, loadParticipantes, loadPonentes])
 
   // Función para determinar la modalidad
   const determineModality = (participante: Participante): string => {
@@ -234,8 +313,16 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
     return "Presencial"
   }
 
-  const filteredAttendees = attendees.filter((attendee) => {
-    const matchesTab = attendee.type === activeTab
+  // Función para recargar todos los datos
+  const handleReload = useCallback(() => {
+    loadParticipantes()
+    loadPonentes()
+  }, [loadParticipantes, loadPonentes])
+
+  // Seleccionar la lista correcta según la tab activa
+  const currentList = activeTab === "ponentes" ? ponentes : attendees
+
+  const filteredAttendees = currentList.filter((attendee) => {
     let matchesSearch = true
 
     if (searchTerm) {
@@ -250,7 +337,7 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
 
     const matchesFilter =
       attendanceFilter === "all" || attendee.status === (attendanceFilter === "present" ? "present" : "absent")
-    return matchesTab && matchesSearch && matchesFilter
+    return matchesSearch && matchesFilter
   })
 
   const toggleAttendance = async (id: number) => {
@@ -259,10 +346,14 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
       return
     }
 
-    // Encontrar el asistente actual
-    const attendee = attendees.find((a) => a.id === id)
+    // Buscar en la lista correcta según la tab activa
+    const list = activeTab === "ponentes" ? ponentes : attendees
+    const setList = activeTab === "ponentes" ? setPonentes : setAttendees
+
+    // Encontrar el asistente/ponente actual
+    const attendee = list.find((a) => a.id === id)
     if (!attendee) {
-      console.error(`No se encontró el asistente con ID ${id}`)
+      console.error(`No se encontró el participante con ID ${id}`)
       return
     }
 
@@ -275,8 +366,8 @@ export function EventDashboard({ eventId }: EventDashboardProps) {
       await attendanceService.updateAttendanceStatus(id, Number(eventId), asistio)
 
       // Si la actualización fue exitosa, actualizar el estado local
-      setAttendees(
-        attendees.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
+      setList(
+        list.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
       )
 
       console.log(`✅ Asistencia actualizada: Participante ${id} - ${asistio ? "Presente" : "Ausente"}`)
@@ -470,7 +561,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                     
                     <div className="flex gap-2 items-center">
                       <Button
-                        onClick={loadParticipantes}
+                        onClick={handleReload}
                         disabled={isLoading}
                         variant="outline"
                         size="sm"
@@ -539,7 +630,7 @@ ${filteredAttendees.map((a) => `${a.dni} | ${a.fullName} | ${a.email} | ${a.regi
                 ) : error ? (
                   <div className="text-center py-8">
                     <p className="text-red-500 mb-4">{error}</p>
-                    <Button onClick={loadParticipantes} variant="outline">
+                    <Button onClick={handleReload} variant="outline">
                       Reintentar
                     </Button>
                   </div>

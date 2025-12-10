@@ -201,4 +201,54 @@ export const eventService = {
       throw error
     }
   },
+
+  /**
+   * Sube una plantilla de certificado PDF para un evento (requiere autenticación ADMIN)
+   * @param eventId - ID del evento
+   * @param file - Archivo PDF de la plantilla
+   * @returns Mensaje de confirmación
+   */
+  async uploadCertificateTemplate(eventId: string, file: File): Promise<{ mensaje: string; eventoId: number }> {
+    try {
+      // Validar tipo de archivo
+      if (file.type !== "application/pdf") {
+        throw new Error("Solo se permiten archivos PDF")
+      }
+
+      // Validar tamaño (máximo 10MB según el backend)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("El archivo no debe superar 10MB")
+      }
+
+      const formData = new FormData()
+      formData.append("plantilla", file)
+
+      // Para FormData NO se debe incluir Content-Type, el browser lo agrega automáticamente
+      const token = tokenUtils.getToken()
+      const headers: HeadersInit = {}
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
+      const response = await fetch(`${API_BASE_URL}/eventos/${eventId}/plantilla-certificado`, {
+        method: "POST",
+        headers,
+        body: formData,
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Sesión expirada. Inicia sesión nuevamente.")
+        if (response.status === 403) throw new Error("No tienes permisos para subir plantillas.")
+        if (response.status === 404) throw new Error("Evento no encontrado.")
+        
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error al subir plantilla: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error(`Error uploading certificate template for event ${eventId}:`, error)
+      throw error
+    }
+  },
 }

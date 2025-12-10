@@ -1,10 +1,12 @@
 "use client"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Calendar, MapPin, Users } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Users, Upload, FileText, Check, Loader2, X } from "lucide-react"
 import type { Event } from "@/types/event"
 import { EventDashboard } from "./event-dashboard"
 import { useAuth } from "@/context/AuthContext"
+import { eventService } from "@/services/event-service"
 
 interface EventDetailViewProps {
   event: Event
@@ -14,6 +16,34 @@ interface EventDetailViewProps {
 
 export function EventDetailView({ event, onBack, onEdit }: EventDetailViewProps) {
   const { isGuest } = useAuth()
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Crear y limpiar URL de vista previa cuando cambia el archivo seleccionado
+  useEffect(() => {
+    if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile)
+      setPreviewUrl(url)
+      return () => {
+        URL.revokeObjectURL(url)
+        setPreviewUrl(null)
+      }
+    } else {
+      setPreviewUrl(null)
+    }
+  }, [selectedFile])
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null)
+    setUploadError(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
   
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("es-PE", {
@@ -50,6 +80,46 @@ export function EventDetailView({ event, onBack, onEdit }: EventDetailViewProps)
         return "bg-orange-100 text-orange-800"
       default:
         return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.type !== "application/pdf") {
+        setUploadError("Solo se permiten archivos PDF")
+        setSelectedFile(null)
+        return
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError("El archivo no debe superar 10MB")
+        setSelectedFile(null)
+        return
+      }
+      setSelectedFile(file)
+      setUploadError(null)
+      setUploadSuccess(false)
+    }
+  }
+
+  const handleUploadTemplate = async () => {
+    if (!selectedFile) return
+
+    setIsUploading(true)
+    setUploadError(null)
+    setUploadSuccess(false)
+
+    try {
+      await eventService.uploadCertificateTemplate(event.id, selectedFile)
+      setUploadSuccess(true)
+      setSelectedFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Error al subir la plantilla")
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -170,6 +240,92 @@ export function EventDetailView({ event, onBack, onEdit }: EventDetailViewProps)
                 <p className="text-sm text-gray-600">Certificado</p>
                 <p className="font-semibold text-gray-900">{event.brindaCertificado ? "Sí" : "No"}</p>
               </div>
+
+              {/* Sección para subir plantilla de certificado */}
+              {event.brindaCertificado && !isGuest && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-gray-600 mb-2">Plantilla de Certificado</p>
+                  <div className="space-y-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="certificate-template-input"
+                    />
+                    
+                    {!selectedFile ? (
+                      <label
+                        htmlFor="certificate-template-input"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors"
+                      >
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Seleccionar PDF</span>
+                      </label>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Nombre del archivo y botón para quitar */}
+                        <div className="flex items-center justify-between gap-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                            <span className="text-sm text-purple-700 truncate">{selectedFile.name}</span>
+                          </div>
+                          <button
+                            onClick={clearSelectedFile}
+                            className="p-1 hover:bg-purple-200 rounded transition-colors flex-shrink-0"
+                            title="Quitar archivo"
+                          >
+                            <X className="w-4 h-4 text-purple-600" />
+                          </button>
+                        </div>
+
+                        {/* Vista previa del PDF */}
+                        {previewUrl && (
+                          <div className="w-full rounded-lg overflow-hidden border border-gray-200">
+                            <embed
+                              src={previewUrl}
+                              type="application/pdf"
+                              className="w-full h-64"
+                            />
+                          </div>
+                        )}
+
+                        {/* Botón para subir */}
+                        <Button
+                          onClick={handleUploadTemplate}
+                          disabled={isUploading}
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          size="sm"
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Subiendo...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Subir Plantilla
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    {uploadSuccess && (
+                      <div className="flex items-center gap-2 text-green-600 text-sm">
+                        <Check className="w-4 h-4" />
+                        <span>Plantilla subida correctamente</span>
+                      </div>
+                    )}
+
+                    {uploadError && (
+                      <p className="text-red-500 text-sm">{uploadError}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
