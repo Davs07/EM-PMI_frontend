@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Upload, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { tokenUtils } from "@/services/auth-service"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
@@ -59,15 +60,47 @@ export function ImportDialog({ onClose, onImport, eventId }: ImportDialogProps) 
       formData.append("archivo", file)
       formData.append("eventoId", eventId)
 
+      // Obtener el token de autenticación
+      const token = tokenUtils.getToken()
+      
+      // Preparar headers (NO incluir Content-Type, el navegador lo establece automáticamente para FormData)
+      const headers: HeadersInit = {}
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
       // Enviar al backend
       const response = await fetch(`${API_BASE_URL}/test/cargar-archivo`, {
         method: "POST",
+        headers,
         body: formData,
       })
 
+      // Primero verificar si la respuesta es ok antes de intentar parsear JSON
+      if (!response.ok) {
+        // Intentar obtener el mensaje de error del body
+        let errorMessage = `Error ${response.status}`
+        try {
+          const errorText = await response.text()
+          if (errorText) {
+            const errorJson = JSON.parse(errorText)
+            errorMessage = errorJson.message || errorMessage
+          }
+        } catch {
+          // Si no se puede parsear, usar el mensaje genérico
+          if (response.status === 403) {
+            errorMessage = "No tienes permisos para realizar esta acción. Verifica tu sesión."
+          } else if (response.status === 401) {
+            errorMessage = "Sesión expirada. Por favor, inicia sesión nuevamente."
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Solo parsear JSON si la respuesta es exitosa
       const data = await response.json()
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.message || "Error al procesar el archivo")
       }
 
