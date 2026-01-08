@@ -1,6 +1,6 @@
 import { tokenUtils } from "./auth-service"
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL)
 
 /**
  * Helper para obtener headers con autenticación (sin Content-Type para FormData)
@@ -73,7 +73,7 @@ export const emailService = {
         formData.append("flyer", request.flyer)
       }
 
-      const response = await fetch(`${API_BASE_URL}/email/recordatorio`, {
+      const response = await fetch(`${API_BASE_URL}/api/email/recordatorio`, {
         method: "POST",
         headers: getAuthHeadersForFormData(),
         body: formData,
@@ -113,7 +113,7 @@ export const emailService = {
         formData.append('flyerPath', invitacion.flyerPath)
       }
 
-      const response = await fetch(`${API_BASE_URL}/email/virtual`, {
+      const response = await fetch(`${API_BASE_URL}/api/email/virtual`, {
         method: "POST",
         headers: getAuthHeadersForFormData(),
         body: formData,
@@ -153,7 +153,7 @@ export const emailService = {
         formData.append('flyerPath', invitacion.flyerPath)
       }
 
-      const response = await fetch(`${API_BASE_URL}/email/presencial`, {
+      const response = await fetch(`${API_BASE_URL}/api/email/presencial`, {
         method: "POST",
         headers: getAuthHeadersForFormData(),
         body: formData,
@@ -187,7 +187,7 @@ export const emailService = {
       const formData = new FormData()
       formData.append("mensaje", mensajeConSaltosDeLinea)
 
-      const response = await fetch(`${API_BASE_URL}/certificados/evento/${eventoId}/enviar`, {
+      const response = await fetch(`${API_BASE_URL}/api/certificados/evento/${eventoId}/enviar`, {
         method: "POST",
         headers: getAuthHeadersForFormData(),
         body: formData,

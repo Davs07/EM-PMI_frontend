@@ -1,7 +1,7 @@
 import type { Event } from "@/types/event"
 import { tokenUtils } from "./auth-service"
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL)
 
 /**
  * Helper para obtener headers con autenticación
@@ -105,7 +105,7 @@ export const eventService = {
    */
   async getAll(): Promise<Event[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/eventos/listar`)
+      const response = await fetch(`${API_BASE_URL}/api/eventos/listar`)
       if (!response.ok) {
         throw new Error(`Error al obtener eventos: ${response.status}`)
       }
@@ -122,7 +122,7 @@ export const eventService = {
    */
   async getById(id: string): Promise<Event> {
     try {
-      const response = await fetch(`${API_BASE_URL}/eventos/${id}`)
+      const response = await fetch(`${API_BASE_URL}/api/eventos/${id}`)
       if (!response.ok) {
         throw new Error(`Error al obtener evento: ${response.status}`)
       }
@@ -140,7 +140,7 @@ export const eventService = {
   async create(event: Omit<Event, "id">): Promise<Event> {
     try {
       const payload = mapEventToBackend(event)
-      const response = await fetch(`${API_BASE_URL}/eventos/crear`, {
+      const response = await fetch(`${API_BASE_URL}/api/eventos/crear`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
@@ -164,7 +164,7 @@ export const eventService = {
   async update(id: string, event: Event): Promise<Event> {
     try {
       const payload = mapEventToBackend(event)
-      const response = await fetch(`${API_BASE_URL}/eventos/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/eventos/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),
@@ -187,7 +187,7 @@ export const eventService = {
    */
   async delete(id: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/eventos/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/eventos/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       })
@@ -230,7 +230,7 @@ export const eventService = {
         headers["Authorization"] = `Bearer ${token}`
       }
 
-      const response = await fetch(`${API_BASE_URL}/eventos/${eventId}/plantilla-certificado`, {
+      const response = await fetch(`${API_BASE_URL}/api/eventos/${eventId}/plantilla-certificado`, {
         method: "POST",
         headers,
         body: formData,

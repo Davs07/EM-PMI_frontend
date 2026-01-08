@@ -1,7 +1,7 @@
 import { tokenUtils } from "./auth-service"
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api"
-
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL)
+console.log(process.env.NEXT_PUBLIC_API_URL)
 /**
  * Helper para obtener headers con autenticación
  */
@@ -33,7 +33,7 @@ export const attendanceService = {
   async getByParticipantAndEvent(participanteId: number, eventoId: number): Promise<AsistenciaDTO> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/asistencias/participante/${participanteId}/evento/${eventoId}`
+        `${API_BASE_URL}/api/asistencias/participante/${participanteId}/evento/${eventoId}`
       )
       if (!response.ok) {
         throw new Error(`Error al obtener asistencia: ${response.status}`)
@@ -56,7 +56,7 @@ export const attendanceService = {
   ): Promise<AsistenciaDTO> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/asistencias/participante/${participanteId}/evento/${eventoId}/estado`,
+        `${API_BASE_URL}/api/asistencias/participante/${participanteId}/evento/${eventoId}/estado`,
         {
           method: "PATCH",
           headers: getAuthHeaders(),
@@ -115,7 +115,7 @@ export const attendanceService = {
         headers["Authorization"] = `Bearer ${token}`
       }
 
-      const response = await fetch(`${API_BASE_URL}/asistencias/validar-qr-imagen`, {
+      const response = await fetch(`${API_BASE_URL}/api/asistencias/validar-qr-imagen`, {
         method: "POST",
         headers,
         body: formData,
@@ -155,7 +155,7 @@ export const attendanceService = {
         asistio: false,
       }
 
-      const response = await fetch(`${API_BASE_URL}/asistencias/crear`, {
+      const response = await fetch(`${API_BASE_URL}/api/asistencias/crear`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),

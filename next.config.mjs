@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Habilitar output standalone para Docker
+  output: "standalone",
   eslint: {
     ignoreDuringBuilds: true,
   },

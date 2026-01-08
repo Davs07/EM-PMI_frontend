@@ -9,7 +9,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Sistema de Gestión de Eventos del PMI Capítulo Perú',
-  description: 'Sistema de Gestión de Eventos del PMI Capítulo Perú - Registro de Asistencia',
+  description: 'Sistema de Gestión de Eventos del PMI Capítulo Perú',
 }
 
 export default function RootLayout({

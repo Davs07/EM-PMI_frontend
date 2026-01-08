@@ -1,0 +1,52 @@
+# Dependencias
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Next.js build output
+.next
+out
+
+# Archivos de entorno (no incluir en la imagen)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE y editores
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentación y archivos innecesarios
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+
+# Tests
+coverage
+.nyc_output
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Archivos de configuración de desarrollo
+.eslintcache
+.prettierignore
+tsconfig.tsbuildinfo
